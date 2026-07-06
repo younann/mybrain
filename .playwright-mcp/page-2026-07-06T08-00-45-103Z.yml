@@ -1,0 +1,7 @@
+- generic [ref=e4]:
+  - generic [ref=e5]: 🧠
+  - heading "Second Brain" [level=1] [ref=e6]
+  - paragraph [ref=e7]: Your memory, always with you.
+  - generic [ref=e8]:
+    - textbox "you@example.com" [ref=e9]
+    - button "Email me a sign-in link" [ref=e10] [cursor=pointer]
