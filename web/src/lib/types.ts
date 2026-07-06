@@ -9,6 +9,10 @@ export interface Entry {
   extracted_text: string
   image_path: string | null
   url: string | null
+  tags: string[]
+  lat: number | null
+  lng: number | null
+  place: string | null
 }
 
 export interface NewEntry {
@@ -17,8 +21,20 @@ export interface NewEntry {
   extracted_text?: string
   image_path?: string | null
   url?: string | null
+  tags?: string[]
+  lat?: number | null
+  lng?: number | null
+  place?: string | null
 }
 
-export function searchableText(e: Pick<Entry, 'user_note' | 'extracted_text'>): string {
-  return e.extracted_text ? `${e.user_note}\n${e.extracted_text}` : e.user_note
+/** The text sent to Gemini for a note — note, enrichment, place, and tags. */
+export function searchableText(e: Partial<Entry>): string {
+  return [
+    e.user_note,
+    e.extracted_text,
+    e.place ? `Location: ${e.place}` : '',
+    e.tags && e.tags.length ? `Tags: ${e.tags.join(', ')}` : '',
+  ]
+    .filter(Boolean)
+    .join('\n')
 }

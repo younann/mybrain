@@ -17,11 +17,15 @@ export function Timeline({
 }) {
   const [adding, setAdding] = useState(false)
   const [selected, setSelected] = useState<Entry | null>(null)
+  const [tag, setTag] = useState<string | null>(null)
 
   async function del(id: string) {
     await removeEntry(supabase, id)
     onChange()
   }
+
+  const allTags = [...new Set(entries.flatMap((e) => e.tags ?? []))].sort()
+  const shown = tag ? entries.filter((e) => e.tags?.includes(tag)) : entries
 
   return (
     <div className="screen">
@@ -32,6 +36,23 @@ export function Timeline({
         </button>
       </header>
 
+      {allTags.length > 0 && (
+        <div className="filter-row">
+          <button className={!tag ? 'filter active' : 'filter'} onClick={() => setTag(null)}>
+            All
+          </button>
+          {allTags.map((t) => (
+            <button
+              key={t}
+              className={tag === t ? 'filter active' : 'filter'}
+              onClick={() => setTag(t)}
+            >
+              {t}
+            </button>
+          ))}
+        </div>
+      )}
+
       {entries.length === 0 ? (
         <div className="empty">
           <div className="empty-emoji">🧠</div>
@@ -40,7 +61,7 @@ export function Timeline({
         </div>
       ) : (
         <div className="list">
-          {entries.map((e) => (
+          {shown.map((e) => (
             <EntryCard key={e.id} entry={e} onDelete={del} onOpen={setSelected} />
           ))}
         </div>

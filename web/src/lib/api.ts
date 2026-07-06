@@ -30,3 +30,43 @@ export function answerQuestion(
 ): Promise<string> {
   return callGemini(sb, { action: 'answer', question, notes })
 }
+
+async function callGeminiJson<T>(sb: SupabaseClient, payload: Record<string, unknown>): Promise<T> {
+  const { data } = await sb.auth.getSession()
+  const token = data.session?.access_token ?? ''
+  const res = await fetch('/api/gemini', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
+    body: JSON.stringify(payload),
+  })
+  const json = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error((json as { error?: string }).error ?? `Error ${res.status}`)
+  return json as T
+}
+
+/** Auto-tags for a note (best-effort; returns [] on failure). */
+export async function tagText(sb: SupabaseClient, text: string): Promise<string[]> {
+  try {
+    return (await callGeminiJson<{ tags: string[] }>(sb, { action: 'tag', text })).tags ?? []
+  } catch {
+    return []
+  }
+}
+
+/** Server-side fetch of a URL's title/description (best-effort; '' on failure). */
+export async function enrichUrl(sb: SupabaseClient, url: string): Promise<string> {
+  try {
+    return (await callGeminiJson<{ text: string }>(sb, { action: 'enrichUrl', url })).text ?? ''
+  } catch {
+    return ''
+  }
+}
+
+/** Reverse-geocode coordinates to a place name (best-effort; '' on failure). */
+export async function geocode(sb: SupabaseClient, lat: number, lng: number): Promise<string> {
+  try {
+    return (await callGeminiJson<{ place: string }>(sb, { action: 'geocode', lat, lng })).place ?? ''
+  } catch {
+    return ''
+  }
+}

@@ -24,6 +24,25 @@ export function EntryDetail({ entry, onClose }: { entry: Entry; onClose: () => v
             {ICON.url} {entry.url}
           </a>
         )}
+        {entry.place && (
+          <a
+            className="detail-link"
+            href={`https://www.google.com/maps/search/?api=1&query=${entry.lat},${entry.lng}`}
+            target="_blank"
+            rel="noreferrer"
+          >
+            📍 {entry.place}
+          </a>
+        )}
+        {entry.tags?.length > 0 && (
+          <div className="tag-row">
+            {entry.tags.map((t) => (
+              <span key={t} className="tag">
+                {t}
+              </span>
+            ))}
+          </div>
+        )}
         <div className="detail-date">{new Date(entry.created_at).toLocaleString()}</div>
         <button className="ghost" onClick={onClose}>
           Close

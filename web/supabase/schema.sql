@@ -9,8 +9,18 @@ create table if not exists public.entries (
   user_note      text not null default '',
   extracted_text text not null default '',
   image_path     text,
-  url            text
+  url            text,
+  tags           text[] not null default '{}',
+  lat            double precision,
+  lng            double precision,
+  place          text
 );
+
+-- For existing installs (idempotent):
+alter table public.entries add column if not exists tags  text[] not null default '{}';
+alter table public.entries add column if not exists lat   double precision;
+alter table public.entries add column if not exists lng   double precision;
+alter table public.entries add column if not exists place text;
 
 alter table public.entries enable row level security;
 

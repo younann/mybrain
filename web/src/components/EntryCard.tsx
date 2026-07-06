@@ -26,6 +26,16 @@ export function EntryCard({
         <div className="card-body">
           <div className="card-title">{title}</div>
           {entry.extracted_text && <div className="card-sub">{entry.extracted_text}</div>}
+          {entry.place && <div className="card-place">📍 {entry.place}</div>}
+          {entry.tags?.length > 0 && (
+            <div className="tag-row">
+              {entry.tags.map((t) => (
+                <span key={t} className="tag">
+                  {t}
+                </span>
+              ))}
+            </div>
+          )}
           <div className="card-date">{new Date(entry.created_at).toLocaleString()}</div>
         </div>
       </button>

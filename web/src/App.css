@@ -211,11 +211,75 @@ button:disabled {
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+.card-place {
+  font-size: 0.78rem;
+  color: var(--muted);
+  margin-top: 3px;
+}
 .card-date {
   font-size: 0.72rem;
   color: var(--faint);
   margin-top: 4px;
   font-variant-numeric: tabular-nums;
+}
+
+/* tags */
+.tag-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 6px;
+}
+.tag {
+  font-size: 0.68rem;
+  font-weight: 500;
+  color: var(--accent-ink);
+  background: var(--accent-soft);
+  border-radius: 6px;
+  padding: 2px 7px;
+}
+
+/* tag filter bar */
+.filter-row {
+  display: flex;
+  gap: 7px;
+  overflow-x: auto;
+  padding-bottom: 12px;
+  margin: -4px 0 12px;
+  scrollbar-width: none;
+}
+.filter-row::-webkit-scrollbar {
+  display: none;
+}
+.filter {
+  flex-shrink: 0;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 999px;
+  padding: 6px 13px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  transition: all 0.18s ease;
+}
+.filter.active {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+
+/* location checkbox */
+.check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+  color: var(--muted);
+  cursor: pointer;
+}
+.check input {
+  width: auto;
+  accent-color: var(--accent);
 }
 
 /* ---------- Empty state ---------- */

@@ -30,3 +30,28 @@ export function parseGeminiText(json: unknown): string {
   }
   return j.candidates?.[0]?.content?.parts?.map((p) => p.text ?? '').join('').trim() ?? ''
 }
+
+export function tagBody(text: string) {
+  const prompt =
+    'Give 1 to 4 short, lowercase, single-or-two-word category tags for this note ' +
+    '(e.g. restaurant, coffee, perfume, gift-idea, travel, book). ' +
+    'Reply with ONLY the tags, comma-separated, nothing else.\n\nNOTE:\n' +
+    text
+  return { contents: [{ parts: [{ text: prompt }] }] }
+}
+
+/** Parses a comma/line separated tag reply into a clean, de-duped list (max 4). */
+export function parseTags(raw: string): string[] {
+  const seen = new Set<string>()
+  for (const part of raw.split(/[,\n]/)) {
+    const t = part
+      .trim()
+      .toLowerCase()
+      .replace(/^[-•*\d.\s]+/, '')
+      .replace(/[^a-z0-9 -]/g, '')
+      .trim()
+      .replace(/\s+/g, '-')
+    if (t && t.length <= 24) seen.add(t)
+  }
+  return [...seen].slice(0, 4)
+}

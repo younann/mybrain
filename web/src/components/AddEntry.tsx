@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { addEntry, uploadImage } from '../lib/entries'
-import { describeImage } from '../lib/api'
+import { describeImage, enrichUrl, tagText, geocode } from '../lib/api'
 import { fileToBase64 } from '../lib/image'
-import type { EntryType } from '../lib/types'
+import { currentPosition } from '../lib/geo'
+import type { EntryType, NewEntry } from '../lib/types'
 
 export function AddEntry({
   userId,
@@ -18,6 +19,8 @@ export function AddEntry({
   const [note, setNote] = useState('')
   const [url, setUrl] = useState('')
   const [file, setFile] = useState<File | null>(null)
+  const [withLocation, setWithLocation] = useState(false)
+  const [status, setStatus] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -26,33 +29,49 @@ export function AddEntry({
     (kind === 'url' && url.trim()) ||
     (kind === 'photo' && file)
 
+  function pickKind(k: EntryType) {
+    setKind(k)
+    if (k === 'photo') setWithLocation(true)
+  }
+
   async function save() {
     setBusy(true)
     setError(null)
     try {
-      if (kind === 'text') {
-        await addEntry(supabase, { type: 'text', user_note: note })
-      } else if (kind === 'url') {
-        await addEntry(supabase, { type: 'url', user_note: note, url })
+      const draft: NewEntry = { type: kind, user_note: note }
+
+      if (kind === 'url') {
+        draft.url = url
+        setStatus('Reading the page…')
+        draft.extracted_text = await enrichUrl(supabase, url)
       } else if (kind === 'photo' && file) {
-        const path = await uploadImage(supabase, userId, file)
-        let extracted = ''
-        try {
-          extracted = await describeImage(supabase, await fileToBase64(file))
-        } catch {
-          /* enrichment is best-effort */
-        }
-        await addEntry(supabase, {
-          type: 'photo',
-          user_note: note,
-          image_path: path,
-          extracted_text: extracted,
-        })
+        setStatus('Uploading photo…')
+        draft.image_path = await uploadImage(supabase, userId, file)
+        setStatus('Describing photo…')
+        draft.extracted_text = await describeImage(supabase, await fileToBase64(file)).catch(() => '')
       }
+
+      if (withLocation) {
+        setStatus('Getting location…')
+        const pos = await currentPosition()
+        if (pos) {
+          draft.lat = pos.lat
+          draft.lng = pos.lng
+          draft.place = await geocode(supabase, pos.lat, pos.lng)
+        }
+      }
+
+      setStatus('Tagging…')
+      const basis = [draft.user_note, draft.extracted_text, draft.place].filter(Boolean).join('\n')
+      draft.tags = basis.trim() ? await tagText(supabase, basis) : []
+
+      setStatus('Saving…')
+      await addEntry(supabase, draft)
       onSaved()
     } catch (e) {
       setError((e as Error).message)
       setBusy(false)
+      setStatus(null)
     }
   }
 
@@ -62,7 +81,7 @@ export function AddEntry({
         <h2>Add to Brain</h2>
         <div className="segmented">
           {(['text', 'photo', 'url'] as EntryType[]).map((k) => (
-            <button key={k} className={kind === k ? 'active' : ''} onClick={() => setKind(k)}>
+            <button key={k} className={kind === k ? 'active' : ''} onClick={() => pickKind(k)}>
               {k === 'text' ? '📝 Text' : k === 'photo' ? '📷 Photo' : '🔗 URL'}
             </button>
           ))}
@@ -94,9 +113,19 @@ export function AddEntry({
           rows={3}
         />
 
+        <label className="check">
+          <input
+            type="checkbox"
+            checked={withLocation}
+            onChange={(e) => setWithLocation(e.target.checked)}
+          />
+          📍 Attach my location
+        </label>
+
+        {busy && status && <p className="notice">{status}</p>}
         {error && <p className="notice err">{error}</p>}
         <div className="modal-actions">
-          <button className="ghost" onClick={onClose}>
+          <button className="ghost" onClick={onClose} disabled={busy}>
             Cancel
           </button>
           <button disabled={!canSave || busy} onClick={save}>

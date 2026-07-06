@@ -1,6 +1,13 @@
 import { createClient } from '@supabase/supabase-js'
 import type { PromptNote } from '../../src/lib/prompt'
-import { describeBody, answerBody, parseGeminiText } from '../../src/lib/gemini-shapes'
+import {
+  describeBody,
+  answerBody,
+  parseGeminiText,
+  tagBody,
+  parseTags,
+} from '../../src/lib/gemini-shapes'
+import { parseUrlMeta, urlMetaText } from '../../src/lib/url-meta'
 
 const MODEL = 'gemini-2.5-flash'
 const geminiUrl = (key: string) =>
@@ -36,7 +43,16 @@ export default async (req: Request): Promise<Response> => {
   const key = process.env.GEMINI_API_KEY
   if (!key) return reply(500, { error: 'Server missing GEMINI_API_KEY' })
 
-  let payload: { action?: string; imageBase64?: string; question?: string; notes?: PromptNote[] }
+  let payload: {
+    action?: string
+    imageBase64?: string
+    question?: string
+    notes?: PromptNote[]
+    text?: string
+    url?: string
+    lat?: number
+    lng?: number
+  }
   try {
     payload = await req.json()
   } catch {
@@ -52,9 +68,54 @@ export default async (req: Request): Promise<Response> => {
       const g = await callGemini(key, answerBody(payload.question, payload.notes ?? []))
       return reply(200, { text: parseGeminiText(g) })
     }
+    if (payload.action === 'tag' && payload.text) {
+      const g = await callGemini(key, tagBody(payload.text))
+      return reply(200, { tags: parseTags(parseGeminiText(g)) })
+    }
+    if (payload.action === 'enrichUrl' && payload.url) {
+      return reply(200, { text: await enrichUrl(payload.url) })
+    }
+    if (payload.action === 'geocode' && payload.lat != null && payload.lng != null) {
+      return reply(200, { place: await reverseGeocode(payload.lat, payload.lng) })
+    }
     return reply(400, { error: 'Unknown action' })
   } catch (e) {
     return reply(502, { error: (e as Error).message })
+  }
+}
+
+async function enrichUrl(url: string): Promise<string> {
+  if (!/^https?:\/\//i.test(url)) return ''
+  try {
+    const res = await fetch(url, {
+      headers: { 'user-agent': 'Mozilla/5.0 (SecondBrain link preview)' },
+      redirect: 'follow',
+    })
+    if (!res.ok) return ''
+    const html = (await res.text()).slice(0, 400_000)
+    return urlMetaText(parseUrlMeta(html))
+  } catch {
+    return ''
+  }
+}
+
+async function reverseGeocode(lat: number, lng: number): Promise<string> {
+  try {
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&zoom=18`,
+      { headers: { 'user-agent': 'SecondBrain/1.0 (personal app)' } },
+    )
+    if (!res.ok) return ''
+    const j = (await res.json()) as { name?: string; address?: Record<string, string> }
+    const a = j.address ?? {}
+    const parts = [
+      j.name || a.amenity || a.shop || a.road,
+      a.suburb || a.neighbourhood,
+      a.city || a.town || a.village,
+    ].filter(Boolean)
+    return [...new Set(parts)].join(', ')
+  } catch {
+    return ''
   }
 }
 
