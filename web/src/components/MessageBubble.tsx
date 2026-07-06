@@ -13,7 +13,11 @@ export function MessageBubble({ turn }: { turn: Turn }) {
     <div className="turn">
       <div className="q">{turn.question}</div>
       {turn.loading ? (
-        <div className="a loading">…</div>
+        <div className="a loading">
+          <i></i>
+          <i></i>
+          <i></i>
+        </div>
       ) : (
         <div className="a">
           <div className="a-text">{turn.answer}</div>

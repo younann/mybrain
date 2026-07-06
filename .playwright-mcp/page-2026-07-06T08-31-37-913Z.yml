@@ -1,0 +1,20 @@
+- generic [ref=e3]:
+  - main [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e6]:
+        - heading "Brain" [level=1] [ref=e7]
+        - button "＋" [ref=e8] [cursor=pointer]
+      - generic [ref=e9]:
+        - generic [ref=e10]: 🧠
+        - paragraph [ref=e11]: Your brain is empty.
+        - paragraph [ref=e12]: Tap ＋ to save a thought, photo, or link.
+  - navigation [ref=e13]:
+    - button "🧠 Brain" [ref=e14] [cursor=pointer]:
+      - text: 🧠
+      - generic [ref=e15]: Brain
+    - button "✨ Ask" [ref=e16] [cursor=pointer]:
+      - text: ✨
+      - generic [ref=e17]: Ask
+    - button "⚙️ Settings" [ref=e18] [cursor=pointer]:
+      - text: ⚙️
+      - generic [ref=e19]: Settings

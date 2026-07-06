@@ -1,28 +1,44 @@
 :root {
-  --bg: #f6f7f9;
-  --surface: #ffffff;
-  --surface-2: #eef0f3;
-  --text: #1a1c1e;
-  --muted: #6b7280;
-  --accent: #4f46e5;
-  --accent-soft: #e0e7ff;
-  --border: #e3e6ea;
-  --danger: #dc2626;
-  --radius: 14px;
-  --tabbar-h: 64px;
+  /* Warm "paper & ink" palette — moves away from generic AI indigo */
+  --bg: #f5f2ec;
+  --surface: #fffdf8;
+  --surface-2: #efeae1;
+  --surface-3: #e7e1d6;
+  --text: #211d17;
+  --muted: #7c7466;
+  --faint: #a89f8f;
+  --accent: #c25a34; /* warm clay */
+  --accent-ink: #a4471f;
+  --accent-soft: #f2e2d7;
+  --border: #e6e0d5;
+  --danger: #b23b2e;
+  --ok: #4b7a52;
+  --radius: 16px;
+  --radius-sm: 10px;
+  --tabbar-h: 68px;
+  --shadow: 0 1px 2px rgba(60, 44, 28, 0.05), 0 6px 20px rgba(60, 44, 28, 0.07);
+  --shadow-lg: 0 10px 40px rgba(60, 44, 28, 0.14);
+  --font-body: 'Outfit Variable', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-display: 'Fraunces Variable', Georgia, serif;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #0f1113;
-    --surface: #17191c;
-    --surface-2: #1f2226;
-    --text: #e8eaed;
-    --muted: #9aa0a6;
-    --accent: #8b83ff;
-    --accent-soft: #26243f;
-    --border: #2a2e33;
-    --danger: #f87171;
+    --bg: #14120d;
+    --surface: #1d1a14;
+    --surface-2: #262219;
+    --surface-3: #302b20;
+    --text: #ece6d9;
+    --muted: #9c9384;
+    --faint: #6f6858;
+    --accent: #e0805a;
+    --accent-ink: #eb9873;
+    --accent-soft: #33271e;
+    --border: #2e2a20;
+    --danger: #e0796b;
+    --ok: #8fbf96;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35);
+    --shadow-lg: 0 12px 44px rgba(0, 0, 0, 0.5);
   }
 }
 
@@ -38,11 +54,13 @@ body,
 }
 
 body {
-  font-family:
-    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  font-family: var(--font-body);
   background: var(--bg);
   color: var(--text);
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  /* subtle grain to break flatness */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");
 }
 
 input,
@@ -50,6 +68,13 @@ textarea,
 button {
   font: inherit;
   color: inherit;
+}
+
+/* Consistent, calm focus ring */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
 }
 
 .muted {
@@ -62,4 +87,12 @@ button {
   display: grid;
   place-items: center;
   height: 100%;
+  font-family: var(--font-body);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }
