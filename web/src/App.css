@@ -717,6 +717,10 @@ textarea:focus {
   border-radius: var(--radius);
   overflow: hidden;
   box-shadow: var(--shadow);
+  /* Contain Leaflet's high internal z-indexes so overlays/tab bar sit above the map */
+  position: relative;
+  z-index: 0;
+  isolation: isolate;
 }
 .map-pin {
   display: grid;
