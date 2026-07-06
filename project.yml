@@ -14,20 +14,18 @@ targets:
     type: application
     platform: iOS
     sources: [SecondBrain]
-    dependencies:
-      - target: ShareExtension
-        embed: true
+    # NOTE: App Group + Share Extension require the paid Apple Developer Program.
+    # On a free personal team, leave them off (default below). To re-enable,
+    # restore the `dependencies` + `entitlements` blocks (see git history:
+    # commit "feat: Chunk 3 Share Extension, App Group store, iCloud toggle").
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.younan.secondbrain
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
         INFOPLIST_KEY_CFBundleDisplayName: "Second Brain"
-    entitlements:
-      path: SecondBrain/SecondBrain.entitlements
-      properties:
-        com.apple.security.application-groups:
-          - group.com.younan.secondbrain
 
+  # Dormant on a free team (not embedded by the app). Requires the paid
+  # Developer Program (App Groups) to ship. Kept for future use.
   ShareExtension:
     type: app-extension
     platform: iOS
