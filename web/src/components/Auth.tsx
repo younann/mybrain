@@ -3,20 +3,28 @@ import { supabase, isSupabaseConfigured } from '../lib/supabase'
 
 export function Auth() {
   const [email, setEmail] = useState('')
-  const [sent, setSent] = useState(false)
+  const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [info, setInfo] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
-  async function sendLink(e: React.FormEvent) {
+  async function signIn(e: React.FormEvent) {
     e.preventDefault()
     setBusy(true)
     setError(null)
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: { emailRedirectTo: window.location.origin },
-    })
+    setInfo(null)
+    const { error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) setError(error.message)
-    else setSent(true)
+    setBusy(false)
+  }
+
+  async function signUp() {
+    setBusy(true)
+    setError(null)
+    setInfo(null)
+    const { data, error } = await supabase.auth.signUp({ email, password })
+    if (error) setError(error.message)
+    else if (!data.session) setInfo('Account created. If email confirmation is on, confirm it — or turn it off in Supabase.')
     setBusy(false)
   }
 
@@ -34,22 +42,32 @@ export function Auth() {
           </p>
         )}
 
-        {sent ? (
-          <p className="notice ok">Check your email for a sign-in link ✉️</p>
-        ) : (
-          <form onSubmit={sendLink}>
-            <input
-              type="email"
-              required
-              placeholder="you@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-            <button type="submit" disabled={busy}>
-              {busy ? 'Sending…' : 'Email me a sign-in link'}
-            </button>
-          </form>
-        )}
+        <form onSubmit={signIn}>
+          <input
+            type="email"
+            required
+            autoComplete="username"
+            placeholder="you@example.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+          <input
+            type="password"
+            required
+            autoComplete="current-password"
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+          <button type="submit" disabled={busy}>
+            {busy ? '…' : 'Sign in'}
+          </button>
+        </form>
+        <button className="ghost" onClick={signUp} disabled={busy || !email || !password}>
+          Create account
+        </button>
+
+        {info && <p className="notice ok">{info}</p>}
         {error && <p className="notice err">{error}</p>}
       </div>
     </div>
