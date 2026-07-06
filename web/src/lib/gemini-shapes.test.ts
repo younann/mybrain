@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
-import { describeBody, answerBody, parseGeminiText } from './gemini'
+import { describeBody, answerBody, parseGeminiText } from './gemini-shapes'
 
-describe('gemini function helpers', () => {
+describe('gemini shapes', () => {
   it('describeBody embeds base64 image as inline_data', () => {
     const b = describeBody('AAAA')
     const part = b.contents[0].parts.find((p) => 'inline_data' in p) as {

@@ -1,41 +1,10 @@
 import { createClient } from '@supabase/supabase-js'
-import { buildAnswerPrompt, type PromptNote } from '../../src/lib/prompt'
+import type { PromptNote } from '../../src/lib/prompt'
+import { describeBody, answerBody, parseGeminiText } from '../../src/lib/gemini-shapes'
 
 const MODEL = 'gemini-2.5-flash'
 const geminiUrl = (key: string) =>
   `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${key}`
-
-// ---- Pure request/response helpers (unit-tested) ----
-
-export function describeBody(base64: string) {
-  return {
-    contents: [
-      {
-        parts: [
-          {
-            text:
-              'Describe this image in one or two sentences, focusing on what it is ' +
-              '(place, product, text visible). Be concise and factual.',
-          },
-          { inline_data: { mime_type: 'image/jpeg', data: base64 } },
-        ],
-      },
-    ],
-  }
-}
-
-export function answerBody(question: string, notes: PromptNote[]) {
-  return { contents: [{ parts: [{ text: buildAnswerPrompt(question, notes) }] }] }
-}
-
-export function parseGeminiText(json: unknown): string {
-  const j = json as {
-    candidates?: { content?: { parts?: { text?: string }[] } }[]
-  }
-  return (
-    j.candidates?.[0]?.content?.parts?.map((p) => p.text ?? '').join('').trim() ?? ''
-  )
-}
 
 // ---- Handler ----
 
