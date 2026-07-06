@@ -24,6 +24,29 @@ export async function removeEntry(sb: SupabaseClient, id: string): Promise<void>
   if (error) throw error
 }
 
+/** pgvector literal, e.g. [0.1,0.2,0.3]. */
+export function toVector(values: number[]): string {
+  return `[${values.join(',')}]`
+}
+
+/** Semantic search: the caller's most similar entries. [] if unavailable. */
+export async function matchEntries(
+  sb: SupabaseClient,
+  embedding: number[],
+  count = 8,
+): Promise<Entry[]> {
+  const { data, error } = await sb.rpc('match_entries', {
+    query_embedding: toVector(embedding),
+    match_count: count,
+  })
+  if (error) throw error
+  return (data ?? []) as Entry[]
+}
+
+export async function setEmbedding(sb: SupabaseClient, id: string, embedding: number[]) {
+  await sb.from(ENTRIES_TABLE).update({ embedding: toVector(embedding) }).eq('id', id)
+}
+
 export async function uploadImage(
   sb: SupabaseClient,
   userId: string,

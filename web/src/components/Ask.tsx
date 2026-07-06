@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { supabase } from '../lib/supabase'
-import { answerQuestion } from '../lib/api'
+import { answerQuestion, embedText } from '../lib/api'
+import { matchEntries } from '../lib/entries'
 import { parseAnswer } from '../lib/prompt'
 import { searchableText } from '../lib/types'
 import type { Entry } from '../lib/types'
@@ -23,11 +24,18 @@ export function Ask({ entries }: { entries: Entry[] }) {
       finish(id, 'I have nothing saved about that yet.', [])
       return
     }
-    const notes = entries.map((e, i) => ({ index: i, text: searchableText(e) }))
     try {
+      // Semantic search when embeddings exist; fall back to sending everything.
+      let pool = entries
+      const qEmb = await embedText(supabase, q)
+      if (qEmb.length) {
+        const matched = await matchEntries(supabase, qEmb, 8).catch(() => [])
+        if (matched.length) pool = matched
+      }
+      const notes = pool.map((e, i) => ({ index: i, text: searchableText(e) }))
       const raw = await answerQuestion(supabase, q, notes)
       const { text, sourceIndices } = parseAnswer(raw)
-      finish(id, text, sourceIndices.map((i) => entries[i]).filter(Boolean))
+      finish(id, text, sourceIndices.map((i) => pool[i]).filter(Boolean))
     } catch (e) {
       finish(id, `⚠️ ${(e as Error).message}`, [])
     }

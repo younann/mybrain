@@ -40,6 +40,15 @@ export function tagBody(text: string) {
   return { contents: [{ parts: [{ text: prompt }] }] }
 }
 
+export function embedBody(text: string) {
+  return { content: { parts: [{ text }] } }
+}
+
+export function parseEmbedding(json: unknown): number[] {
+  const j = json as { embedding?: { values?: number[] } }
+  return j.embedding?.values ?? []
+}
+
 /** Parses a comma/line separated tag reply into a clean, de-duped list (max 4). */
 export function parseTags(raw: string): string[] {
   const seen = new Set<string>()

@@ -70,3 +70,15 @@ export async function geocode(sb: SupabaseClient, lat: number, lng: number): Pro
     return ''
   }
 }
+
+/** Embedding vector for a piece of text (best-effort; [] on failure). */
+export async function embedText(sb: SupabaseClient, text: string): Promise<number[]> {
+  try {
+    return (
+      (await callGeminiJson<{ embedding: number[] }>(sb, { action: 'embed', embedText: text }))
+        .embedding ?? []
+    )
+  } catch {
+    return []
+  }
+}

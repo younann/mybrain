@@ -268,6 +268,42 @@ button:disabled {
   border-color: var(--accent);
 }
 
+/* voice dictation */
+.note-wrap {
+  position: relative;
+}
+.mic {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: var(--surface-3);
+  font-size: 1rem;
+  display: grid;
+  place-items: center;
+  transition: transform 0.12s ease, background 0.2s ease;
+}
+.mic:active {
+  transform: scale(0.9);
+}
+.mic.recording {
+  background: var(--accent);
+  color: #fff;
+  animation: pulse 1.3s infinite;
+}
+@keyframes pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 50%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 8px transparent;
+  }
+}
+
 /* location checkbox */
 .check {
   display: flex;

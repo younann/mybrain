@@ -6,12 +6,17 @@ import {
   parseGeminiText,
   tagBody,
   parseTags,
+  embedBody,
+  parseEmbedding,
 } from '../../src/lib/gemini-shapes'
 import { parseUrlMeta, urlMetaText } from '../../src/lib/url-meta'
 
 const MODEL = 'gemini-2.5-flash'
+const EMBED_MODEL = 'text-embedding-004'
 const geminiUrl = (key: string) =>
   `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${key}`
+const embedUrl = (key: string) =>
+  `https://generativelanguage.googleapis.com/v1beta/models/${EMBED_MODEL}:embedContent?key=${key}`
 
 // ---- Handler ----
 
@@ -52,6 +57,7 @@ export default async (req: Request): Promise<Response> => {
     url?: string
     lat?: number
     lng?: number
+    embedText?: string
   }
   try {
     payload = await req.json()
@@ -77,6 +83,15 @@ export default async (req: Request): Promise<Response> => {
     }
     if (payload.action === 'geocode' && payload.lat != null && payload.lng != null) {
       return reply(200, { place: await reverseGeocode(payload.lat, payload.lng) })
+    }
+    if (payload.action === 'embed' && payload.embedText) {
+      const res = await fetch(embedUrl(key), {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(embedBody(payload.embedText)),
+      })
+      if (!res.ok) throw new Error(`Embed ${res.status}: ${await res.text()}`)
+      return reply(200, { embedding: parseEmbedding(await res.json()) })
     }
     return reply(400, { error: 'Unknown action' })
   } catch (e) {

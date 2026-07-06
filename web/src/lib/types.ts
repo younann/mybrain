@@ -25,6 +25,7 @@ export interface NewEntry {
   lat?: number | null
   lng?: number | null
   place?: string | null
+  embedding?: string | null
 }
 
 /** The text sent to Gemini for a note — note, enrichment, place, and tags. */

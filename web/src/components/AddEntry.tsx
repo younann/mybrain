@@ -1,10 +1,12 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { addEntry, uploadImage } from '../lib/entries'
-import { describeImage, enrichUrl, tagText, geocode } from '../lib/api'
+import { isSpeechSupported, createRecognizer, type Recognizer } from '../lib/speech'
+import { describeImage, enrichUrl, tagText, geocode, embedText } from '../lib/api'
+import { toVector } from '../lib/entries'
 import { fileToBase64 } from '../lib/image'
 import { currentPosition } from '../lib/geo'
-import type { EntryType, NewEntry } from '../lib/types'
+import { searchableText, type EntryType, type NewEntry } from '../lib/types'
 
 export function AddEntry({
   userId,
@@ -23,6 +25,28 @@ export function AddEntry({
   const [status, setStatus] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [recording, setRecording] = useState(false)
+  const recRef = useRef<Recognizer | null>(null)
+  const baseNote = useRef('')
+
+  function toggleMic() {
+    if (recording) {
+      recRef.current?.stop()
+      return
+    }
+    baseNote.current = note ? note + ' ' : ''
+    const rec = createRecognizer(
+      (text) => setNote(baseNote.current + text),
+      () => {
+        setRecording(false)
+        recRef.current = null
+      },
+    )
+    if (!rec) return
+    recRef.current = rec
+    rec.start()
+    setRecording(true)
+  }
 
   const canSave =
     (kind === 'text' && note.trim()) ||
@@ -65,6 +89,10 @@ export function AddEntry({
       const basis = [draft.user_note, draft.extracted_text, draft.place].filter(Boolean).join('\n')
       draft.tags = basis.trim() ? await tagText(supabase, basis) : []
 
+      setStatus('Indexing…')
+      const emb = await embedText(supabase, searchableText(draft))
+      if (emb.length) draft.embedding = toVector(emb)
+
       setStatus('Saving…')
       await addEntry(supabase, draft)
       onSaved()
@@ -106,12 +134,25 @@ export function AddEntry({
             {file && <img className="preview" src={URL.createObjectURL(file)} alt="" />}
           </>
         )}
-        <textarea
-          placeholder={kind === 'text' ? 'What do you want to remember?' : 'Note (optional)'}
-          value={note}
-          onChange={(e) => setNote(e.target.value)}
-          rows={3}
-        />
+        <div className="note-wrap">
+          <textarea
+            placeholder={kind === 'text' ? 'What do you want to remember?' : 'Note (optional)'}
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            rows={3}
+          />
+          {isSpeechSupported() && (
+            <button
+              type="button"
+              className={recording ? 'mic recording' : 'mic'}
+              onClick={toggleMic}
+              aria-label={recording ? 'Stop recording' : 'Dictate note'}
+              title={recording ? 'Stop' : 'Dictate'}
+            >
+              {recording ? '⏹' : '🎤'}
+            </button>
+          )}
+        </div>
 
         <label className="check">
           <input

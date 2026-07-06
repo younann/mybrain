@@ -1,5 +1,13 @@
 import { describe, it, expect } from 'vitest'
-import { describeBody, answerBody, parseGeminiText, tagBody, parseTags } from './gemini-shapes'
+import {
+  describeBody,
+  answerBody,
+  parseGeminiText,
+  tagBody,
+  parseTags,
+  embedBody,
+  parseEmbedding,
+} from './gemini-shapes'
 
 describe('gemini shapes', () => {
   it('describeBody embeds base64 image as inline_data', () => {
@@ -47,5 +55,14 @@ describe('gemini shapes', () => {
 
   it('parseTags handles bullet/numbered replies', () => {
     expect(parseTags('1. perfume\n2. shopping')).toEqual(['perfume', 'shopping'])
+  })
+
+  it('embedBody wraps text as content parts', () => {
+    expect(embedBody('hello').content.parts[0].text).toBe('hello')
+  })
+
+  it('parseEmbedding extracts values, [] when missing', () => {
+    expect(parseEmbedding({ embedding: { values: [0.1, 0.2] } })).toEqual([0.1, 0.2])
+    expect(parseEmbedding({})).toEqual([])
   })
 })
