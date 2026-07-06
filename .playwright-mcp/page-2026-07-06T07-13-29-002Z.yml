@@ -1,0 +1,13 @@
+- generic [ref=e4]:
+  - generic [ref=e5]: 🧠
+  - heading "Second Brain" [level=1] [ref=e6]
+  - paragraph [ref=e7]: Your memory, always with you.
+  - paragraph [ref=e8]:
+    - text: Backend not configured yet. Set
+    - code [ref=e9]: VITE_SUPABASE_URL
+    - text: and
+    - code [ref=e10]: VITE_SUPABASE_ANON_KEY
+    - text: .
+  - generic [ref=e11]:
+    - textbox "you@example.com" [ref=e12]
+    - button "Email me a sign-in link" [ref=e13] [cursor=pointer]

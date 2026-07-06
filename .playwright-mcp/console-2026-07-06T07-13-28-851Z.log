@@ -1,0 +1,25 @@
+[     118ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=802a45f4:14335
+[  136632ms] [ERROR] Failed to load resource: net::ERR_NAME_NOT_RESOLVED @ https://placeholder.supabase.co/auth/v1/otp?redirect_to=http%3A%2F%2Flocalhost%3A5173:0
+[  136632ms] [ERROR] TypeError: Failed to fetch
+    at http://localhost:5173/node_modules/.vite/deps/@supabase_supabase-js.js?v=051bf0ab:12154:22
+    at _handleRequest (http://localhost:5173/node_modules/.vite/deps/@supabase_supabase-js.js?v=051bf0ab:12435:18)
+    at _request (http://localhost:5173/node_modules/.vite/deps/@supabase_supabase-js.js?v=051bf0ab:12422:21)
+    at SupabaseAuthClient.signInWithOtp (http://localhost:5173/node_modules/.vite/deps/@supabase_supabase-js.js?v=051bf0ab:16450:29)
+    at sendLink (http://localhost:5173/src/components/Auth.tsx:16:41)
+    at executeDispatch (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=802a45f4:9141:5)
+    at runWithFiberInDEV (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=802a45f4:851:66)
+    at processDispatchQueue (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=802a45f4:9167:27)
+    at http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=802a45f4:9454:5
+    at batchedUpdates$1 (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=802a45f4:2044:12) @ http://localhost:5173/@vite/client:524
+[  138211ms] [ERROR] Failed to load resource: net::ERR_NAME_NOT_RESOLVED @ https://placeholder.supabase.co/auth/v1/otp?redirect_to=http%3A%2F%2Flocalhost%3A5173:0
+[  138211ms] [ERROR] TypeError: Failed to fetch
+    at http://localhost:5173/node_modules/.vite/deps/@supabase_supabase-js.js?v=051bf0ab:12154:22
+    at _handleRequest (http://localhost:5173/node_modules/.vite/deps/@supabase_supabase-js.js?v=051bf0ab:12435:18)
+    at _request (http://localhost:5173/node_modules/.vite/deps/@supabase_supabase-js.js?v=051bf0ab:12422:21)
+    at SupabaseAuthClient.signInWithOtp (http://localhost:5173/node_modules/.vite/deps/@supabase_supabase-js.js?v=051bf0ab:16450:29)
+    at sendLink (http://localhost:5173/src/components/Auth.tsx:16:41)
+    at executeDispatch (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=802a45f4:9141:5)
+    at runWithFiberInDEV (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=802a45f4:851:66)
+    at processDispatchQueue (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=802a45f4:9167:27)
+    at http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=802a45f4:9454:5
+    at batchedUpdates$1 (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=802a45f4:2044:12) @ http://localhost:5173/@vite/client:524
