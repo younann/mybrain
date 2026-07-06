@@ -5,10 +5,12 @@ import { parseAnswer } from '../lib/prompt'
 import { searchableText } from '../lib/types'
 import type { Entry } from '../lib/types'
 import { MessageBubble, type Turn } from './MessageBubble'
+import { EntryDetail } from './EntryDetail'
 
 export function Ask({ entries }: { entries: Entry[] }) {
   const [turns, setTurns] = useState<Turn[]>([])
   const [input, setInput] = useState('')
+  const [selected, setSelected] = useState<Entry | null>(null)
 
   async function submit() {
     const q = input.trim()
@@ -48,7 +50,7 @@ export function Ask({ entries }: { entries: Entry[] }) {
           </p>
         )}
         {turns.map((t) => (
-          <MessageBubble key={t.id} turn={t} />
+          <MessageBubble key={t.id} turn={t} onSelect={setSelected} />
         ))}
       </div>
       <div className="composer">
@@ -62,6 +64,7 @@ export function Ask({ entries }: { entries: Entry[] }) {
           ↑
         </button>
       </div>
+      {selected && <EntryDetail entry={selected} onClose={() => setSelected(null)} />}
     </div>
   )
 }

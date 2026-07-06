@@ -143,11 +143,10 @@ button:disabled {
 }
 .card {
   display: flex;
-  gap: 14px;
   align-items: center;
   background: var(--surface);
   border-radius: var(--radius);
-  padding: 13px;
+  padding: 6px 6px 6px 0;
   box-shadow: var(--shadow);
   transition: transform 0.16s ease, box-shadow 0.2s ease;
   animation: rise 0.4s ease backwards;
@@ -155,6 +154,22 @@ button:disabled {
 .card:hover {
   transform: translateY(-2px);
   box-shadow: var(--shadow-lg);
+}
+.card-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  background: none;
+  border: none;
+  text-align: left;
+  padding: 7px 4px 7px 13px;
+  border-radius: var(--radius);
+  transition: background 0.18s ease;
+}
+.card-main:hover {
+  background: var(--surface-2);
 }
 .list .card:nth-child(1) { animation-delay: 0.02s; }
 .list .card:nth-child(2) { animation-delay: 0.06s; }
@@ -441,8 +456,86 @@ textarea:focus {
   font-weight: 500;
   background: var(--accent-soft);
   color: var(--accent-ink);
+  border: none;
   border-radius: 999px;
   padding: 5px 11px;
+  transition: transform 0.12s ease, filter 0.2s ease;
+}
+.chip:hover {
+  filter: brightness(0.97);
+}
+.chip:active {
+  transform: scale(0.96);
+}
+/* photo citation: thumbnail + label */
+.chip-img {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px 4px 4px;
+  background: var(--surface-2);
+  color: var(--text);
+  border-radius: 999px;
+}
+.chip-img img {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+/* ---------- Entry detail / lightbox ---------- */
+.detail {
+  background: var(--surface);
+  border-radius: 24px 24px 0 0;
+  padding: 20px 20px calc(24px + env(safe-area-inset-bottom, 0px));
+  width: 100%;
+  max-width: 620px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: var(--shadow-lg);
+  animation: sheet 0.28s cubic-bezier(0.2, 0.9, 0.3, 1);
+  max-height: 88dvh;
+  overflow-y: auto;
+}
+.detail-img {
+  width: 100%;
+  max-height: 60dvh;
+  object-fit: contain;
+  border-radius: 14px;
+  background: var(--surface-2);
+}
+.detail-note {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+.detail-sub {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+.detail-label {
+  display: block;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--faint);
+  margin-bottom: 3px;
+}
+.detail-link {
+  color: var(--accent-ink);
+  word-break: break-all;
+  text-decoration: none;
+  font-weight: 500;
+}
+.detail-date {
+  font-size: 0.75rem;
+  color: var(--faint);
+  font-variant-numeric: tabular-nums;
 }
 
 /* typing dots */

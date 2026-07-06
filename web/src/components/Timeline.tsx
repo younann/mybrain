@@ -4,6 +4,7 @@ import { removeEntry } from '../lib/entries'
 import type { Entry } from '../lib/types'
 import { EntryCard } from './EntryCard'
 import { AddEntry } from './AddEntry'
+import { EntryDetail } from './EntryDetail'
 
 export function Timeline({
   entries,
@@ -15,6 +16,7 @@ export function Timeline({
   onChange: () => void
 }) {
   const [adding, setAdding] = useState(false)
+  const [selected, setSelected] = useState<Entry | null>(null)
 
   async function del(id: string) {
     await removeEntry(supabase, id)
@@ -39,7 +41,7 @@ export function Timeline({
       ) : (
         <div className="list">
           {entries.map((e) => (
-            <EntryCard key={e.id} entry={e} onDelete={del} />
+            <EntryCard key={e.id} entry={e} onDelete={del} onOpen={setSelected} />
           ))}
         </div>
       )}
@@ -54,6 +56,7 @@ export function Timeline({
           }}
         />
       )}
+      {selected && <EntryDetail entry={selected} onClose={() => setSelected(null)} />}
     </div>
   )
 }

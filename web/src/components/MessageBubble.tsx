@@ -1,3 +1,4 @@
+import { useSignedImage } from '../lib/useSignedImage'
 import type { Entry } from '../lib/types'
 
 export interface Turn {
@@ -8,7 +9,28 @@ export interface Turn {
   loading: boolean
 }
 
-export function MessageBubble({ turn }: { turn: Turn }) {
+function SourceChip({ entry, onSelect }: { entry: Entry; onSelect: (e: Entry) => void }) {
+  const img = useSignedImage(entry.type === 'photo' ? entry.image_path : null)
+  const label = (entry.user_note || entry.extracted_text || entry.url || '').slice(0, 30)
+  return (
+    <button
+      className={img ? 'chip chip-img' : 'chip'}
+      onClick={() => onSelect(entry)}
+      title={entry.extracted_text || entry.user_note}
+    >
+      {img && <img src={img} alt="" />}
+      <span>{label || 'Photo'}</span>
+    </button>
+  )
+}
+
+export function MessageBubble({
+  turn,
+  onSelect,
+}: {
+  turn: Turn
+  onSelect: (e: Entry) => void
+}) {
   return (
     <div className="turn">
       <div className="q">{turn.question}</div>
@@ -24,9 +46,7 @@ export function MessageBubble({ turn }: { turn: Turn }) {
           {turn.sources.length > 0 && (
             <div className="chips">
               {turn.sources.map((s) => (
-                <span key={s.id} className="chip" title={s.extracted_text || s.user_note}>
-                  {(s.user_note || s.extracted_text || s.url || '').slice(0, 28)}
-                </span>
+                <SourceChip key={s.id} entry={s} onSelect={onSelect} />
               ))}
             </div>
           )}
