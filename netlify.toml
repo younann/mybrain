@@ -1,0 +1,18 @@
+# Netlify deploys the web/ app. Set env vars in the Netlify UI (see RUNNING-web.md):
+#   Frontend: VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY
+#   Function: SUPABASE_URL, SUPABASE_ANON_KEY, GEMINI_API_KEY
+[build]
+  base = "web"
+  command = "npm run build"
+  publish = "dist"
+
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+
+# The gemini function declares its own route via `export const config = { path: '/api/gemini' }`.
+# This redirect is a fallback for setups that don't honor function path config.
+[[redirects]]
+  from = "/api/gemini"
+  to = "/.netlify/functions/gemini"
+  status = 200
