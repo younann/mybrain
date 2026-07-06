@@ -1,15 +1,6 @@
 import Foundation
 import SwiftUI
 
-/// Used when no API key is set yet: capture still works, enrichment is deferred.
-struct NoAIService: AIService {
-    struct MissingKey: LocalizedError { var errorDescription: String? { "No Gemini API key set." } }
-    func describeImage(_ imageData: Data) async throws -> String { throw MissingKey() }
-    func answer(question: String, candidates: [AICandidate]) async throws -> (text: String, sourceIndices: [Int]) {
-        throw MissingKey()
-    }
-}
-
 @MainActor
 @Observable
 final class AppEnvironment {

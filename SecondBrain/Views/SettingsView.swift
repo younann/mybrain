@@ -8,6 +8,7 @@ struct SettingsView: View {
     @State private var keyInput = ""
     @State private var reEnriching = false
     @State private var status: String?
+    @AppStorage("icloudSync") private var iCloudSync = false
 
     var body: some View {
         NavigationStack {
@@ -38,6 +39,12 @@ struct SettingsView: View {
                     }
                     .disabled(reEnriching || !env.hasKey)
                     if let status { Text(status).font(.footnote).foregroundStyle(.secondary) }
+                }
+
+                Section("Sync") {
+                    Toggle("iCloud sync", isOn: $iCloudSync)
+                    Text("Requires a paid Apple Developer account. Restart the app after changing. When off, everything stays on this device.")
+                        .font(.footnote).foregroundStyle(.secondary)
                 }
 
                 Section {

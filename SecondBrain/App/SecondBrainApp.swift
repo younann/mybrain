@@ -7,10 +7,16 @@ struct SecondBrainApp: App {
     let container: ModelContainer
 
     init() {
+        let iCloudOn = UserDefaults.standard.bool(forKey: "icloudSync")
+        let config = ModelConfiguration(
+            url: AppGroup.storeURL,
+            cloudKitDatabase: iCloudOn ? .automatic : .none)
         do {
-            container = try ModelContainer(for: Entry.self)
+            container = try ModelContainer(for: Entry.self, configurations: config)
         } catch {
-            fatalError("Failed to create ModelContainer: \(error)")
+            // Fall back to a default local store if the configured one fails
+            // (e.g. iCloud requested without entitlements).
+            container = try! ModelContainer(for: Entry.self)
         }
     }
 

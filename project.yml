@@ -14,10 +14,49 @@ targets:
     type: application
     platform: iOS
     sources: [SecondBrain]
+    dependencies:
+      - target: ShareExtension
+        embed: true
     settings:
       base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.younan.secondbrain
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
         INFOPLIST_KEY_CFBundleDisplayName: "Second Brain"
+    entitlements:
+      path: SecondBrain/SecondBrain.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.com.younan.secondbrain
+
+  ShareExtension:
+    type: app-extension
+    platform: iOS
+    sources:
+      - ShareExtension
+      - SecondBrain/Models
+      - SecondBrain/Services
+      - SecondBrain/Shared
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.younan.secondbrain.share
+        INFOPLIST_KEY_CFBundleDisplayName: "Save to Brain"
+    info:
+      path: ShareExtension/Info.plist
+      properties:
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.share-services
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).ShareViewController
+          NSExtensionAttributes:
+            NSExtensionActivationRule:
+              NSExtensionActivationSupportsWebURLWithMaxCount: 1
+              NSExtensionActivationSupportsImageWithMaxCount: 1
+              NSExtensionActivationSupportsText: true
+    entitlements:
+      path: ShareExtension/ShareExtension.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.com.younan.secondbrain
+
   SecondBrainTests:
     type: bundle.unit-test
     platform: iOS

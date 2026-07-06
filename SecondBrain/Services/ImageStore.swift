@@ -4,7 +4,7 @@ struct ImageStore {
     let dir: URL?
     init(inMemory: Bool = false, container: URL? = nil) {
         if inMemory { dir = nil }
-        else { dir = (container ?? FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0])
+        else { dir = (container ?? AppGroup.storageDir)
                     .appendingPathComponent("images", isDirectory: true) }
         if let d = dir { try? FileManager.default.createDirectory(at: d, withIntermediateDirectories: true) }
     }
