@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-import type { PromptNote } from './prompt'
+import type { PromptNote, PromptTurn } from './prompt'
 
 async function callGemini(
   sb: SupabaseClient,
@@ -27,8 +27,9 @@ export function answerQuestion(
   sb: SupabaseClient,
   question: string,
   notes: PromptNote[],
+  history: PromptTurn[] = [],
 ): Promise<string> {
-  return callGemini(sb, { action: 'answer', question, notes })
+  return callGemini(sb, { action: 'answer', question, notes, history })
 }
 
 async function callGeminiJson<T>(sb: SupabaseClient, payload: Record<string, unknown>): Promise<T> {

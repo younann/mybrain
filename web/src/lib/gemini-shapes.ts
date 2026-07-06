@@ -1,4 +1,4 @@
-import { buildAnswerPrompt, type PromptNote } from './prompt'
+import { buildAnswerPrompt, type PromptNote, type PromptTurn } from './prompt'
 
 // Pure Gemini request/response shaping. Lives in src/ (not netlify/functions/)
 // so Netlify doesn't treat the co-located test file as a deployable function.
@@ -20,8 +20,8 @@ export function describeBody(base64: string) {
   }
 }
 
-export function answerBody(question: string, notes: PromptNote[]) {
-  return { contents: [{ parts: [{ text: buildAnswerPrompt(question, notes) }] }] }
+export function answerBody(question: string, notes: PromptNote[], history: PromptTurn[] = []) {
+  return { contents: [{ parts: [{ text: buildAnswerPrompt(question, notes, history) }] }] }
 }
 
 export function parseGeminiText(json: unknown): string {

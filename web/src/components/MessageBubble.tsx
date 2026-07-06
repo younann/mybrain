@@ -4,6 +4,7 @@ import type { Entry } from '../lib/types'
 export interface Turn {
   id: number
   question: string
+  image?: string
   answer: string
   sources: Entry[]
   loading: boolean
@@ -33,7 +34,10 @@ export function MessageBubble({
 }) {
   return (
     <div className="turn">
-      <div className="q">{turn.question}</div>
+      <div className="q">
+        {turn.image && <img className="q-img" src={turn.image} alt="" />}
+        {turn.question}
+      </div>
       {turn.loading ? (
         <div className="a loading">
           <i></i>

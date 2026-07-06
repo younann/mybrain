@@ -6,10 +6,11 @@ import type { Entry } from './lib/types'
 import { Auth } from './components/Auth'
 import { Timeline } from './components/Timeline'
 import { Ask } from './components/Ask'
+import { MapView } from './components/MapView'
 import { Settings } from './components/Settings'
 import './App.css'
 
-type Tab = 'brain' | 'ask' | 'settings'
+type Tab = 'brain' | 'ask' | 'map' | 'settings'
 
 export default function App() {
   const [session, setSession] = useState<Session | null>(null)
@@ -49,6 +50,7 @@ export default function App() {
           <Timeline entries={entries} userId={session.user.id} onChange={refresh} />
         )}
         {tab === 'ask' && <Ask entries={entries} />}
+        {tab === 'map' && <MapView entries={entries} />}
         {tab === 'settings' && <Settings entries={entries} email={session.user.email ?? ''} />}
       </main>
       <nav className="tabbar">
@@ -57,6 +59,9 @@ export default function App() {
         </button>
         <button className={tab === 'ask' ? 'active' : ''} onClick={() => setTab('ask')}>
           ✨<span>Ask</span>
+        </button>
+        <button className={tab === 'map' ? 'active' : ''} onClick={() => setTab('map')}>
+          🗺️<span>Map</span>
         </button>
         <button className={tab === 'settings' ? 'active' : ''} onClick={() => setTab('settings')}>
           ⚙️<span>Settings</span>

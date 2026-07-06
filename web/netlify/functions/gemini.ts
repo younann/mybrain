@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
-import type { PromptNote } from '../../src/lib/prompt'
+import type { PromptNote, PromptTurn } from '../../src/lib/prompt'
 import {
   describeBody,
   answerBody,
@@ -53,6 +53,7 @@ export default async (req: Request): Promise<Response> => {
     imageBase64?: string
     question?: string
     notes?: PromptNote[]
+    history?: PromptTurn[]
     text?: string
     url?: string
     lat?: number
@@ -71,7 +72,10 @@ export default async (req: Request): Promise<Response> => {
       return reply(200, { text: parseGeminiText(g) })
     }
     if (payload.action === 'answer' && payload.question) {
-      const g = await callGemini(key, answerBody(payload.question, payload.notes ?? []))
+      const g = await callGemini(
+        key,
+        answerBody(payload.question, payload.notes ?? [], payload.history ?? []),
+      )
       return reply(200, { text: parseGeminiText(g) })
     }
     if (payload.action === 'tag' && payload.text) {

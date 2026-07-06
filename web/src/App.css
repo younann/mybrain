@@ -677,9 +677,29 @@ textarea:focus {
   box-shadow: var(--shadow-lg);
   z-index: 15;
 }
+.composer .attach {
+  flex-shrink: 0;
+  width: 40px;
+  display: grid;
+  place-items: center;
+  font-size: 1.15rem;
+  border-radius: 12px;
+  cursor: pointer;
+}
+.composer .attach:active {
+  transform: scale(0.92);
+}
 .composer input {
   flex: 1;
   background: transparent;
+  min-width: 0;
+}
+.q-img {
+  display: block;
+  max-width: 200px;
+  max-height: 200px;
+  border-radius: 12px;
+  margin-bottom: 8px;
 }
 .composer input:focus {
   background: transparent;
@@ -689,6 +709,22 @@ textarea:focus {
   width: 46px;
   flex-shrink: 0;
   font-size: 1.15rem;
+}
+
+/* ---------- Map ---------- */
+.map {
+  height: calc(100dvh - var(--tabbar-h) - 130px);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+.map-pin {
+  display: grid;
+  place-items: center;
+}
+.map-pin span {
+  font-size: 22px;
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.35));
 }
 
 /* ---------- Settings ---------- */

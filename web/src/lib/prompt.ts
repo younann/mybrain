@@ -3,15 +3,30 @@ export interface PromptNote {
   text: string
 }
 
-/** Builds the grounded-answer prompt: numbered notes + a SOURCES instruction. */
-export function buildAnswerPrompt(question: string, notes: PromptNote[]): string {
+export interface PromptTurn {
+  question: string
+  answer: string
+}
+
+/** Builds the grounded-answer prompt: numbered notes, optional history, SOURCES instruction. */
+export function buildAnswerPrompt(
+  question: string,
+  notes: PromptNote[],
+  history: PromptTurn[] = [],
+): string {
   const body = notes.map((n) => `[${n.index}] ${n.text}`).join('\n')
+  const convo = history.length
+    ? ['CONVERSATION SO FAR:', ...history.map((t) => `Q: ${t.question}\nA: ${t.answer}`), ''].join(
+        '\n',
+      )
+    : ''
   return [
     "You are the user's personal memory. Answer using ONLY the notes below.",
     'If nothing is relevant, say you have nothing saved about that yet.',
+    'Use the conversation for context on follow-up questions.',
     'After your answer, on a new line list the note numbers you used as: SOURCES: n, n',
     '',
-    'NOTES:',
+    convo + 'NOTES:',
     body,
     '',
     `QUESTION: ${question}`,
