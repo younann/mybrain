@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { supabase } from './lib/supabase'
 import { listEntries } from './lib/entries'
+import { getProfile, type Profile } from './lib/profile'
 import type { Entry } from './lib/types'
 import { Auth } from './components/Auth'
 import { Timeline } from './components/Timeline'
@@ -17,6 +18,7 @@ export default function App() {
   const [ready, setReady] = useState(false)
   const [tab, setTab] = useState<Tab>('brain')
   const [entries, setEntries] = useState<Entry[]>([])
+  const [profile, setProfile] = useState<Profile | null>(null)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -36,9 +38,19 @@ export default function App() {
     }
   }, [session])
 
+  const loadProfile = useCallback(async () => {
+    if (!session) return
+    try {
+      setProfile(await getProfile(supabase))
+    } catch {
+      setProfile(null)
+    }
+  }, [session])
+
   useEffect(() => {
     void refresh()
-  }, [refresh])
+    void loadProfile()
+  }, [refresh, loadProfile])
 
   if (!ready) return <div className="center muted">Loading…</div>
   if (!session) return <Auth />
@@ -47,11 +59,24 @@ export default function App() {
     <div className="app">
       <main className="content">
         {tab === 'brain' && (
-          <Timeline entries={entries} userId={session.user.id} onChange={refresh} />
+          <Timeline
+            entries={entries}
+            userId={session.user.id}
+            profile={profile}
+            onChange={refresh}
+          />
         )}
-        {tab === 'ask' && <Ask entries={entries} />}
+        {tab === 'ask' && <Ask entries={entries} profile={profile} />}
         {tab === 'map' && <MapView entries={entries} />}
-        {tab === 'settings' && <Settings entries={entries} email={session.user.email ?? ''} />}
+        {tab === 'settings' && (
+          <Settings
+            entries={entries}
+            email={session.user.email ?? ''}
+            userId={session.user.id}
+            profile={profile}
+            onProfileChange={loadProfile}
+          />
+        )}
       </main>
       <nav className="tabbar">
         <button className={tab === 'brain' ? 'active' : ''} onClick={() => setTab('brain')}>

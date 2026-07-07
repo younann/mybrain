@@ -8,13 +8,17 @@ export interface PromptTurn {
   answer: string
 }
 
-/** Builds the grounded-answer prompt: numbered notes, optional history, SOURCES instruction. */
+/** Builds the grounded-answer prompt: user context, numbered notes, history, SOURCES. */
 export function buildAnswerPrompt(
   question: string,
   notes: PromptNote[],
   history: PromptTurn[] = [],
+  userContext = '',
 ): string {
   const body = notes.map((n) => `[${n.index}] ${n.text}`).join('\n')
+  const who = userContext
+    ? `WHO IS ASKING: ${userContext}\nAddress them by name when natural and tailor answers to what you know about them.\n\n`
+    : ''
   const convo = history.length
     ? ['CONVERSATION SO FAR:', ...history.map((t) => `Q: ${t.question}\nA: ${t.answer}`), ''].join(
         '\n',
@@ -26,7 +30,7 @@ export function buildAnswerPrompt(
     'Use the conversation for context on follow-up questions.',
     'After your answer, on a new line list the note numbers you used as: SOURCES: n, n',
     '',
-    convo + 'NOTES:',
+    who + convo + 'NOTES:',
     body,
     '',
     `QUESTION: ${question}`,

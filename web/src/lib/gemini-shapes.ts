@@ -20,8 +20,15 @@ export function describeBody(base64: string) {
   }
 }
 
-export function answerBody(question: string, notes: PromptNote[], history: PromptTurn[] = []) {
-  return { contents: [{ parts: [{ text: buildAnswerPrompt(question, notes, history) }] }] }
+export function answerBody(
+  question: string,
+  notes: PromptNote[],
+  history: PromptTurn[] = [],
+  userContext = '',
+) {
+  return {
+    contents: [{ parts: [{ text: buildAnswerPrompt(question, notes, history, userContext) }] }],
+  }
 }
 
 export function parseGeminiText(json: unknown): string {

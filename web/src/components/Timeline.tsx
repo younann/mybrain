@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { removeEntry } from '../lib/entries'
 import type { Entry } from '../lib/types'
+import type { Profile } from '../lib/profile'
 import { EntryCard } from './EntryCard'
 import { AddEntry } from './AddEntry'
 import { EntryDetail } from './EntryDetail'
@@ -9,10 +10,12 @@ import { EntryDetail } from './EntryDetail'
 export function Timeline({
   entries,
   userId,
+  profile,
   onChange,
 }: {
   entries: Entry[]
   userId: string
+  profile: Profile | null
   onChange: () => void
 }) {
   const [adding, setAdding] = useState(false)
@@ -30,7 +33,10 @@ export function Timeline({
   return (
     <div className="screen">
       <header className="screen-head">
-        <h1>Brain</h1>
+        <div>
+          {profile?.name && <div className="greeting">Hi, {profile.name.split(' ')[0]} 👋</div>}
+          <h1>Brain</h1>
+        </div>
         <button className="add-btn" onClick={() => setAdding(true)}>
           ＋
         </button>

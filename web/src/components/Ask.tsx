@@ -6,10 +6,11 @@ import { parseAnswer } from '../lib/prompt'
 import { fileToBase64 } from '../lib/image'
 import { searchableText } from '../lib/types'
 import type { Entry } from '../lib/types'
+import { profileContext, type Profile } from '../lib/profile'
 import { MessageBubble, type Turn } from './MessageBubble'
 import { EntryDetail } from './EntryDetail'
 
-export function Ask({ entries }: { entries: Entry[] }) {
+export function Ask({ entries, profile }: { entries: Entry[]; profile: Profile | null }) {
   const [turns, setTurns] = useState<Turn[]>([])
   const [input, setInput] = useState('')
   const [file, setFile] = useState<File | null>(null)
@@ -53,7 +54,7 @@ export function Ask({ entries }: { entries: Entry[] }) {
         .map((t) => ({ question: t.question, answer: t.answer }))
       const answerQ = photo ? `${displayQ} (the attached photo shows: ${queryText})` : q
 
-      const raw = await answerQuestion(supabase, answerQ, notes, history)
+      const raw = await answerQuestion(supabase, answerQ, notes, history, profileContext(profile))
       const { text, sourceIndices } = parseAnswer(raw)
       finish(id, text, sourceIndices.map((i) => pool[i]).filter(Boolean))
     } catch (e) {

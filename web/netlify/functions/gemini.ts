@@ -54,6 +54,7 @@ export default async (req: Request): Promise<Response> => {
     question?: string
     notes?: PromptNote[]
     history?: PromptTurn[]
+    userContext?: string
     text?: string
     url?: string
     lat?: number
@@ -74,7 +75,7 @@ export default async (req: Request): Promise<Response> => {
     if (payload.action === 'answer' && payload.question) {
       const g = await callGemini(
         key,
-        answerBody(payload.question, payload.notes ?? [], payload.history ?? []),
+        answerBody(payload.question, payload.notes ?? [], payload.history ?? [], payload.userContext ?? ''),
       )
       return reply(200, { text: parseGeminiText(g) })
     }
