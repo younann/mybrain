@@ -5,7 +5,16 @@ import { embedText } from '../lib/api'
 import { searchableText } from '../lib/types'
 import type { Entry } from '../lib/types'
 import { saveProfile, type Profile } from '../lib/profile'
+import { enablePush, pushSupported, type PushResult } from '../lib/push'
 import { useSignedImage } from '../lib/useSignedImage'
+
+const PUSH_MSG: Record<PushResult, string> = {
+  enabled: 'Push notifications enabled on this device 🔔',
+  unsupported: 'This browser/device doesn’t support push (on iPhone, add to Home Screen first).',
+  denied: 'Notifications are blocked — allow them in your browser settings.',
+  'no-key': 'Push not configured (missing VAPID key).',
+  error: 'Couldn’t enable push. Try again.',
+}
 
 export function Settings({
   entries,
@@ -27,7 +36,13 @@ export function Settings({
   const [savedMsg, setSavedMsg] = useState<string | null>(null)
   const [indexing, setIndexing] = useState(false)
   const [status, setStatus] = useState<string | null>(null)
+  const [pushMsg, setPushMsg] = useState<string | null>(null)
   const avatarUrl = useSignedImage(avatarPath)
+
+  async function turnOnPush() {
+    setPushMsg('Enabling…')
+    setPushMsg(PUSH_MSG[await enablePush(supabase)])
+  }
 
   async function onAvatar(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -115,6 +130,12 @@ export function Settings({
           {indexing ? 'Indexing…' : 'Rebuild search index'}
         </button>
         {status && <p className="muted small">{status}</p>}
+        {pushSupported() && (
+          <button className="ghost" onClick={turnOnPush}>
+            🔔 Enable push notifications
+          </button>
+        )}
+        {pushMsg && <p className="muted small">{pushMsg}</p>}
         <button className="ghost danger" onClick={() => supabase.auth.signOut()}>
           Sign out
         </button>

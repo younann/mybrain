@@ -9,7 +9,8 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['icon.svg'],
+      includeAssets: ['icon.svg', 'push-sw.js'],
+      workbox: { importScripts: ['push-sw.js'] },
       manifest: {
         name: 'Second Brain',
         short_name: 'Brain',

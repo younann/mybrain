@@ -201,3 +201,10 @@
 [INFO] 2026-07-07T05:23:15.122Z [session=ef5edf0f-9d03-4207-b68d-758a598d31d3] Resolved stateDir: /Users/younan.nwesre/.a5c/state
 [INFO] 2026-07-07T05:23:15.122Z [session=ef5edf0f-9d03-4207-b68d-758a598d31d3] Checking session file at: /Users/younan.nwesre/.a5c/state/ef5edf0f-9d03-4207-b68d-758a598d31d3.md
 [INFO] 2026-07-07T05:23:15.122Z [session=ef5edf0f-9d03-4207-b68d-758a598d31d3] No active loop found for session ef5edf0f-9d03-4207-b68d-758a598d31d3 — allowing exit
+[INFO] 2026-07-08T09:01:02.067Z handleHookRunStop started
+[INFO] 2026-07-08T09:01:02.068Z Hook input received
+[INFO] 2026-07-08T09:01:02.068Z [session=ef5edf0f-9d03-4207-b68d-758a598d31d3] Session ID: ef5edf0f-9d03-4207-b68d-758a598d31d3
+[INFO] 2026-07-08T09:01:02.068Z [session=ef5edf0f-9d03-4207-b68d-758a598d31d3] Resolved pluginRoot: /Users/younan.nwesre/.claude/plugins/cache/a5c-ai/babysitter/4.0.157
+[INFO] 2026-07-08T09:01:02.068Z [session=ef5edf0f-9d03-4207-b68d-758a598d31d3] Resolved stateDir: /Users/younan.nwesre/.a5c/state
+[INFO] 2026-07-08T09:01:02.068Z [session=ef5edf0f-9d03-4207-b68d-758a598d31d3] Checking session file at: /Users/younan.nwesre/.a5c/state/ef5edf0f-9d03-4207-b68d-758a598d31d3.md
+[INFO] 2026-07-08T09:01:02.068Z [session=ef5edf0f-9d03-4207-b68d-758a598d31d3] No active loop found for session ef5edf0f-9d03-4207-b68d-758a598d31d3 — allowing exit
