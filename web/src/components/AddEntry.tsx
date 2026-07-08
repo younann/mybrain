@@ -6,6 +6,7 @@ import { describeImage, enrichUrl, tagText, geocode, embedText } from '../lib/ap
 import { toVector } from '../lib/entries'
 import { fileToBase64 } from '../lib/image'
 import { currentPosition } from '../lib/geo'
+import { fromLocalInput } from '../lib/reminders'
 import { searchableText, type EntryType, type NewEntry } from '../lib/types'
 
 export function AddEntry({
@@ -22,6 +23,8 @@ export function AddEntry({
   const [url, setUrl] = useState('')
   const [file, setFile] = useState<File | null>(null)
   const [withLocation, setWithLocation] = useState(false)
+  const [remindAt, setRemindAt] = useState('')
+  const [recurs, setRecurs] = useState('none')
   const [status, setStatus] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -63,6 +66,10 @@ export function AddEntry({
     setError(null)
     try {
       const draft: NewEntry = { type: kind, user_note: note }
+      if (remindAt) {
+        draft.remind_at = fromLocalInput(remindAt)
+        draft.recurs = recurs
+      }
 
       if (kind === 'url') {
         draft.url = url
@@ -162,6 +169,24 @@ export function AddEntry({
           />
           📍 Attach my location
         </label>
+
+        <div className="remind-fields">
+          <label className="field-label">⏰ Remind me</label>
+          <input
+            type="datetime-local"
+            value={remindAt}
+            onChange={(e) => setRemindAt(e.target.value)}
+          />
+          {remindAt && (
+            <select value={recurs} onChange={(e) => setRecurs(e.target.value)}>
+              <option value="none">Once</option>
+              <option value="daily">Every day</option>
+              <option value="weekly">Every week</option>
+              <option value="monthly">Every month</option>
+              <option value="yearly">Every year (birthday)</option>
+            </select>
+          )}
+        </div>
 
         {busy && status && <p className="notice">{status}</p>}
         {error && <p className="notice err">{error}</p>}

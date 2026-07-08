@@ -13,6 +13,8 @@ export interface Entry {
   lat: number | null
   lng: number | null
   place: string | null
+  remind_at: string | null
+  recurs: string
 }
 
 export interface NewEntry {
@@ -26,6 +28,8 @@ export interface NewEntry {
   lng?: number | null
   place?: string | null
   embedding?: string | null
+  remind_at?: string | null
+  recurs?: string
 }
 
 /** The text sent to Gemini for a note — note, enrichment, place, and tags. */

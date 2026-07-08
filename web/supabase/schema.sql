@@ -13,14 +13,18 @@ create table if not exists public.entries (
   tags           text[] not null default '{}',
   lat            double precision,
   lng            double precision,
-  place          text
+  place          text,
+  remind_at      timestamptz,
+  recurs         text not null default 'none'
 );
 
 -- For existing installs (idempotent):
-alter table public.entries add column if not exists tags  text[] not null default '{}';
-alter table public.entries add column if not exists lat   double precision;
-alter table public.entries add column if not exists lng   double precision;
-alter table public.entries add column if not exists place text;
+alter table public.entries add column if not exists tags      text[] not null default '{}';
+alter table public.entries add column if not exists lat       double precision;
+alter table public.entries add column if not exists lng       double precision;
+alter table public.entries add column if not exists place     text;
+alter table public.entries add column if not exists remind_at timestamptz;
+alter table public.entries add column if not exists recurs    text not null default 'none';
 
 alter table public.entries enable row level security;
 

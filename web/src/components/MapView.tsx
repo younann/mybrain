@@ -6,7 +6,7 @@ import { EntryDetail } from './EntryDetail'
 
 const ICON: Record<Entry['type'], string> = { text: '📝', photo: '📷', url: '🔗' }
 
-export function MapView({ entries }: { entries: Entry[] }) {
+export function MapView({ entries, onChange }: { entries: Entry[]; onChange: () => void }) {
   const ref = useRef<HTMLDivElement>(null)
   const mapRef = useRef<L.Map | null>(null)
   const [selected, setSelected] = useState<Entry | null>(null)
@@ -59,7 +59,9 @@ export function MapView({ entries }: { entries: Entry[] }) {
       ) : (
         <div ref={ref} className="map" />
       )}
-      {selected && <EntryDetail entry={selected} onClose={() => setSelected(null)} />}
+      {selected && (
+        <EntryDetail entry={selected} onClose={() => setSelected(null)} onChange={onChange} />
+      )}
     </div>
   )
 }

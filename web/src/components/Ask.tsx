@@ -10,7 +10,15 @@ import { profileContext, type Profile } from '../lib/profile'
 import { MessageBubble, type Turn } from './MessageBubble'
 import { EntryDetail } from './EntryDetail'
 
-export function Ask({ entries, profile }: { entries: Entry[]; profile: Profile | null }) {
+export function Ask({
+  entries,
+  profile,
+  onChange,
+}: {
+  entries: Entry[]
+  profile: Profile | null
+  onChange: () => void
+}) {
   const [turns, setTurns] = useState<Turn[]>([])
   const [input, setInput] = useState('')
   const [file, setFile] = useState<File | null>(null)
@@ -102,7 +110,9 @@ export function Ask({ entries, profile }: { entries: Entry[]; profile: Profile |
           ↑
         </button>
       </div>
-      {selected && <EntryDetail entry={selected} onClose={() => setSelected(null)} />}
+      {selected && (
+        <EntryDetail entry={selected} onClose={() => setSelected(null)} onChange={onChange} />
+      )}
     </div>
   )
 }

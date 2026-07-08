@@ -24,6 +24,15 @@ export async function removeEntry(sb: SupabaseClient, id: string): Promise<void>
   if (error) throw error
 }
 
+export async function updateEntry(
+  sb: SupabaseClient,
+  id: string,
+  fields: Partial<NewEntry>,
+): Promise<void> {
+  const { error } = await sb.from(ENTRIES_TABLE).update(fields).eq('id', id)
+  if (error) throw error
+}
+
 /** pgvector literal, e.g. [0.1,0.2,0.3]. */
 export function toVector(values: number[]): string {
   return `[${values.join(',')}]`

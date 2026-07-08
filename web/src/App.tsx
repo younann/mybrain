@@ -8,10 +8,13 @@ import { Auth } from './components/Auth'
 import { Timeline } from './components/Timeline'
 import { Ask } from './components/Ask'
 import { MapView } from './components/MapView'
+import { Reminders } from './components/Reminders'
 import { Settings } from './components/Settings'
+import { reminderInfo } from './lib/reminders'
+import { notifyDue } from './lib/notify'
 import './App.css'
 
-type Tab = 'brain' | 'ask' | 'map' | 'settings'
+type Tab = 'brain' | 'ask' | 'map' | 'reminders' | 'settings'
 
 export default function App() {
   const [session, setSession] = useState<Session | null>(null)
@@ -52,6 +55,16 @@ export default function App() {
     void loadProfile()
   }, [refresh, loadProfile])
 
+  const now = new Date()
+  const dueCount = entries.filter((e) => {
+    const r = reminderInfo(e, now)
+    return r && r.status !== 'upcoming'
+  }).length
+
+  useEffect(() => {
+    if (dueCount > 0) void notifyDue(dueCount)
+  }, [dueCount])
+
   if (!ready) return <div className="center muted">Loading…</div>
   if (!session) return <Auth />
 
@@ -66,8 +79,9 @@ export default function App() {
             onChange={refresh}
           />
         )}
-        {tab === 'ask' && <Ask entries={entries} profile={profile} />}
-        {tab === 'map' && <MapView entries={entries} />}
+        {tab === 'ask' && <Ask entries={entries} profile={profile} onChange={refresh} />}
+        {tab === 'map' && <MapView entries={entries} onChange={refresh} />}
+        {tab === 'reminders' && <Reminders entries={entries} onChange={refresh} />}
         {tab === 'settings' && (
           <Settings
             entries={entries}
@@ -87,6 +101,15 @@ export default function App() {
         </button>
         <button className={tab === 'map' ? 'active' : ''} onClick={() => setTab('map')}>
           🗺️<span>Map</span>
+        </button>
+        <button
+          className={tab === 'reminders' ? 'active' : ''}
+          onClick={() => setTab('reminders')}
+        >
+          <span className="tab-icon">
+            ⏰{dueCount > 0 && <span className="badge">{dueCount}</span>}
+          </span>
+          <span>Soon</span>
         </button>
         <button className={tab === 'settings' ? 'active' : ''} onClick={() => setTab('settings')}>
           ⚙️<span>Settings</span>

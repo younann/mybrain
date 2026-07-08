@@ -83,7 +83,9 @@ export function Timeline({
           }}
         />
       )}
-      {selected && <EntryDetail entry={selected} onClose={() => setSelected(null)} />}
+      {selected && (
+        <EntryDetail entry={selected} onClose={() => setSelected(null)} onChange={onChange} />
+      )}
     </div>
   )
 }
