@@ -7,6 +7,8 @@ import {
   parseTags,
   embedBody,
   parseEmbedding,
+  intentBody,
+  parseIntent,
 } from './gemini-shapes'
 
 describe('gemini shapes', () => {
@@ -64,5 +66,17 @@ describe('gemini shapes', () => {
   it('parseEmbedding extracts values, [] when missing', () => {
     expect(parseEmbedding({ embedding: { values: [0.1, 0.2] } })).toEqual([0.1, 0.2])
     expect(parseEmbedding({})).toEqual([])
+  })
+
+  it('intentBody includes the message and current time', () => {
+    const t = intentBody('remind me friday', '2026-07-09T10:00:00').contents[0].parts[0].text
+    expect(t).toContain('remind me friday')
+    expect(t).toContain('2026-07-09T10:00:00')
+  })
+
+  it('parseIntent reads JSON, tolerates fences, defaults to answer', () => {
+    expect(parseIntent('{"intent":"add","note":"buy milk"}').note).toBe('buy milk')
+    expect(parseIntent('```json\n{"intent":"delete","target":"perfume"}\n```').intent).toBe('delete')
+    expect(parseIntent('sorry I cannot').intent).toBe('answer')
   })
 })

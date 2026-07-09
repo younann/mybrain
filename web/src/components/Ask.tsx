@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { supabase } from '../lib/supabase'
-import { answerQuestion, embedText, describeImage } from '../lib/api'
-import { matchEntries } from '../lib/entries'
+import { answerQuestion, embedText, describeImage, classifyIntent } from '../lib/api'
+import { matchEntries, addEntry, removeEntry, toVector } from '../lib/entries'
 import { parseAnswer } from '../lib/prompt'
 import { fileToBase64 } from '../lib/image'
 import { searchableText } from '../lib/types'
@@ -42,6 +42,41 @@ export function Ask({
     }
 
     try {
+      // Text-only messages may be an action (add / delete), not a question.
+      if (!photo) {
+        const intent = await classifyIntent(supabase, q, new Date().toISOString())
+        if (intent.intent === 'add') {
+          const note = intent.note || q
+          const remindIso = intent.remind_at ? new Date(intent.remind_at).toISOString() : null
+          const emb = await embedText(supabase, note)
+          await addEntry(supabase, {
+            type: 'text',
+            user_note: note,
+            tags: intent.tags ?? [],
+            remind_at: remindIso,
+            recurs: remindIso ? intent.recurs || 'none' : 'none',
+            embedding: emb.length ? toVector(emb) : undefined,
+          })
+          onChange()
+          const when = remindIso ? ` ⏰ I'll remind you ${new Date(remindIso).toLocaleString()}.` : ''
+          finish(id, `✅ Saved: “${note}”.${when}`, [])
+          return
+        }
+        if (intent.intent === 'delete') {
+          const emb = await embedText(supabase, intent.target || q)
+          const matches = emb.length ? await matchEntries(supabase, emb, 1).catch(() => []) : []
+          if (!matches.length) {
+            finish(id, "I couldn't find a matching note to delete.", [])
+            return
+          }
+          const victim = matches[0]
+          await removeEntry(supabase, victim.id)
+          onChange()
+          finish(id, `🗑️ Deleted: “${victim.user_note || victim.extracted_text}”.`, [])
+          return
+        }
+      }
+
       let queryText = q
       if (photo) {
         const desc = await describeImage(supabase, await fileToBase64(photo)).catch(() => '')
@@ -82,8 +117,9 @@ export function Ask({
       <div className="chat">
         {turns.length === 0 && (
           <p className="muted hint">
-            Ask your brain anything — “where would I love to eat?”, “what did I save about
-            perfume?” You can attach a photo too.
+            Ask, or just tell me things — “where would I love to eat?”, “remind me to call mom
+            Friday”, “save that I parked on level 3”, “delete the perfume note”. You can attach a
+            photo too.
           </p>
         )}
         {turns.map((t) => (

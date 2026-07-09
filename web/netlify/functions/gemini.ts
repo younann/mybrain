@@ -8,6 +8,8 @@ import {
   parseTags,
   embedBody,
   parseEmbedding,
+  intentBody,
+  parseIntent,
 } from '../../src/lib/gemini-shapes'
 import { parseUrlMeta, urlMetaText } from '../../src/lib/url-meta'
 
@@ -60,6 +62,8 @@ export default async (req: Request): Promise<Response> => {
     lat?: number
     lng?: number
     embedText?: string
+    message?: string
+    nowIso?: string
   }
   try {
     payload = await req.json()
@@ -88,6 +92,10 @@ export default async (req: Request): Promise<Response> => {
     }
     if (payload.action === 'geocode' && payload.lat != null && payload.lng != null) {
       return reply(200, { place: await reverseGeocode(payload.lat, payload.lng) })
+    }
+    if (payload.action === 'intent' && payload.message) {
+      const g = await callGemini(key, intentBody(payload.message, payload.nowIso ?? ''))
+      return reply(200, { intent: parseIntent(parseGeminiText(g)) })
     }
     if (payload.action === 'embed' && payload.embedText) {
       const res = await fetch(embedUrl(key), {

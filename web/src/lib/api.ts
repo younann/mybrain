@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { PromptNote, PromptTurn } from './prompt'
+import type { Intent } from './gemini-shapes'
 
 async function callGemini(
   sb: SupabaseClient,
@@ -70,6 +71,23 @@ export async function geocode(sb: SupabaseClient, lat: number, lng: number): Pro
     return (await callGeminiJson<{ place: string }>(sb, { action: 'geocode', lat, lng })).place ?? ''
   } catch {
     return ''
+  }
+}
+
+/** Routes a chat message to an action (answer/add/delete). Defaults to answer. */
+export async function classifyIntent(
+  sb: SupabaseClient,
+  message: string,
+  nowIso: string,
+): Promise<Intent> {
+  try {
+    return (
+      (await callGeminiJson<{ intent: Intent }>(sb, { action: 'intent', message, nowIso })).intent ?? {
+        intent: 'answer',
+      }
+    )
+  } catch {
+    return { intent: 'answer' }
   }
 }
 
