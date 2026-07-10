@@ -9,6 +9,9 @@ import {
   parseEmbedding,
   intentBody,
   parseIntent,
+  captureBody,
+  parseCapture,
+  formatRecipe,
 } from './gemini-shapes'
 
 describe('gemini shapes', () => {
@@ -78,5 +81,43 @@ describe('gemini shapes', () => {
     expect(parseIntent('{"intent":"add","note":"buy milk"}').note).toBe('buy milk')
     expect(parseIntent('```json\n{"intent":"delete","target":"perfume"}\n```').intent).toBe('delete')
     expect(parseIntent('sorry I cannot').intent).toBe('answer')
+  })
+
+  it('captureBody includes the url and scraped text', () => {
+    const t = captureBody('some caption', 'https://tiktok.com/x').contents[0].parts[0].text
+    expect(t).toContain('https://tiktok.com/x')
+    expect(t).toContain('some caption')
+  })
+
+  it('parseCapture keeps the recipe object only for kind recipe', () => {
+    const r = parseCapture(
+      '{"kind":"recipe","title":"Soup","summary":"warm","tags":["soup","dinner"],"recipe":{"ingredients":["water"],"steps":["boil"]}}',
+    )
+    expect(r?.kind).toBe('recipe')
+    expect(r?.recipe?.ingredients).toEqual(['water'])
+    expect(r?.tags).toEqual(['soup', 'dinner'])
+  })
+
+  it('parseCapture drops a stray recipe when kind is not recipe', () => {
+    const r = parseCapture('{"kind":"article","title":"News","summary":"x","recipe":{"ingredients":["nope"]}}')
+    expect(r?.kind).toBe('article')
+    expect(r?.recipe).toBeUndefined()
+  })
+
+  it('parseCapture returns null on non-JSON', () => {
+    expect(parseCapture('sorry, cannot')).toBeNull()
+  })
+
+  it('formatRecipe renders title, ingredients, and numbered steps', () => {
+    const md = formatRecipe('Pesto', {
+      ingredients: ['basil', 'oil'],
+      steps: ['blend', 'serve'],
+      time: '10 min',
+    })
+    expect(md).toContain('# Pesto')
+    expect(md).toContain('⏱ 10 min')
+    expect(md).toContain('- basil')
+    expect(md).toContain('1. blend')
+    expect(md).toContain('2. serve')
   })
 })

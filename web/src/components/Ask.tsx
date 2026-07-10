@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { supabase } from '../lib/supabase'
-import { answerQuestion, embedText, describeImage, classifyIntent } from '../lib/api'
+import { answerQuestion, embedText, describeImage, classifyIntent, captureUrl } from '../lib/api'
 import { matchEntries, addEntry, removeEntry, toVector } from '../lib/entries'
 import { parseAnswer } from '../lib/prompt'
+import { formatRecipe, type Capture } from '../lib/gemini-shapes'
 import { fileToBase64 } from '../lib/image'
 import { searchableText } from '../lib/types'
 import type { Entry } from '../lib/types'
@@ -42,6 +43,17 @@ export function Ask({
     }
 
     try {
+      // A pasted link → capture it silently as a searchable entry.
+      const url = !photo ? firstUrl(q) : undefined
+      if (url) {
+        const saved = await captureLink(url, q)
+        if (saved) {
+          finish(id, saved, [])
+          return
+        }
+        // Nothing usable at the link — fall through to the normal answer flow.
+      }
+
       // Text-only messages may be an action (add / delete), not a question.
       if (!photo) {
         const intent = await classifyIntent(supabase, q, new Date().toISOString())
@@ -105,6 +117,32 @@ export function Ask({
     }
   }
 
+  // Scrapes the link, saves it as an entry, and returns a natural confirmation.
+  // Returns null when the link yields nothing worth saving (→ normal flow).
+  async function captureLink(url: string, message: string): Promise<string | null> {
+    const cap = await captureUrl(supabase, url)
+    if (!cap || (!cap.title && !cap.summary && !cap.recipe)) return null
+
+    const note = extractNote(message, url) || cap.title
+    const body =
+      cap.recipe && (cap.recipe.ingredients.length || cap.recipe.steps.length)
+        ? formatRecipe(cap.title, cap.recipe)
+        : [cap.title, cap.summary].filter(Boolean).join('\n')
+    const tags = [...new Set([...(cap.kind === 'recipe' ? ['recipe'] : []), ...cap.tags])].slice(0, 4)
+
+    const emb = await embedText(supabase, [body, note].filter(Boolean).join('\n')).catch(() => [])
+    await addEntry(supabase, {
+      type: 'url',
+      user_note: note,
+      extracted_text: body,
+      url,
+      tags,
+      embedding: emb.length ? toVector(emb) : undefined,
+    })
+    onChange()
+    return captureReply(cap)
+  }
+
   function finish(id: number, answer: string, sources: Entry[]) {
     setTurns((t) => t.map((x) => (x.id === id ? { ...x, answer, sources, loading: false } : x)))
   }
@@ -151,4 +189,37 @@ export function Ask({
       )}
     </div>
   )
+}
+
+/** First http(s) URL in a message, or undefined. */
+function firstUrl(text: string): string | undefined {
+  return text.match(/https?:\/\/[^\s]+/i)?.[0]
+}
+
+/** The user's own words around a pasted link (so their note isn't lost). */
+function extractNote(message: string, url: string): string {
+  return message.replace(url, '').trim()
+}
+
+/** A natural, assistant-like confirmation that offers a next step. */
+function captureReply(cap: Capture): string {
+  const title = cap.title || 'that link'
+  if (cap.recipe) {
+    const bits = [
+      cap.recipe.ingredients.length && `${cap.recipe.ingredients.length} ingredients`,
+      cap.recipe.time && `~${cap.recipe.time}`,
+    ].filter(Boolean)
+    const detail = bits.length ? ` — ${bits.join(', ')}` : ''
+    return `Saved the recipe for ${title} 🍳${detail}. Want a reminder to try it this week?`
+  }
+  const tagline = cap.tags.length ? ` — tagged ${cap.tags.join(', ')}` : ''
+  const kindWord =
+    cap.kind === 'place'
+      ? 'place'
+      : cap.kind === 'product'
+        ? 'product'
+        : cap.kind === 'video'
+          ? 'video'
+          : 'link'
+  return `Saved this ${kindWord}: “${title}”${tagline}.`
 }

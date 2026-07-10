@@ -83,6 +83,86 @@ export function parseIntent(text: string): Intent {
   }
 }
 
+export interface CaptureRecipe {
+  ingredients: string[]
+  steps: string[]
+  servings?: string
+  time?: string
+}
+
+export interface Capture {
+  kind: 'recipe' | 'article' | 'place' | 'product' | 'video' | 'other'
+  title: string
+  summary: string
+  tags: string[]
+  recipe?: CaptureRecipe
+}
+
+/**
+ * Prompts Gemini to classify a pasted link's content and, for recipes, pull the
+ * structured ingredients/steps. `text` is whatever we scraped (JSON-LD, oEmbed
+ * caption, or og:description); `url` gives the model a hint about the source.
+ */
+export function captureBody(text: string, url: string) {
+  const prompt = `You capture links for a personal "second brain". Given the URL and the text scraped from it, reply with ONLY minified JSON (no code fences, no prose):
+{"kind":"recipe|article|place|product|video|other","title":"<short>","summary":"<1-2 sentence gist>","tags":["..up to 4 lowercase.."],"recipe":{"ingredients":["..."],"steps":["..."],"servings":"<opt>","time":"<opt>"}}
+Rules:
+- Include the "recipe" object ONLY when kind is "recipe". Omit it otherwise.
+- For recipes, extract every ingredient and every step you can find in the text; keep steps concise and ordered.
+- If the text is too thin to tell what the link is, use kind "other" and summarize what little is known.
+- Never invent ingredients or steps that are not supported by the text.
+URL: ${url}
+SCRAPED TEXT:
+${text}`
+  return { contents: [{ parts: [{ text: prompt }] }] }
+}
+
+export function parseCapture(text: string): Capture | null {
+  try {
+    const s = text.indexOf('{')
+    const e = text.lastIndexOf('}')
+    if (s === -1 || e === -1) return null
+    const obj = JSON.parse(text.slice(s, e + 1)) as Partial<Capture>
+    const kinds = ['recipe', 'article', 'place', 'product', 'video', 'other']
+    const kind = kinds.includes(obj.kind as string) ? (obj.kind as Capture['kind']) : 'other'
+    const recipe =
+      kind === 'recipe' && obj.recipe
+        ? {
+            ingredients: (obj.recipe.ingredients ?? []).map(String).filter(Boolean),
+            steps: (obj.recipe.steps ?? []).map(String).filter(Boolean),
+            servings: obj.recipe.servings || undefined,
+            time: obj.recipe.time || undefined,
+          }
+        : undefined
+    return {
+      kind,
+      title: (obj.title ?? '').trim(),
+      summary: (obj.summary ?? '').trim(),
+      tags: Array.isArray(obj.tags) ? obj.tags.map(String).slice(0, 4) : [],
+      recipe,
+    }
+  } catch {
+    return null
+  }
+}
+
+/** Renders a captured recipe as searchable/displayable markdown. */
+export function formatRecipe(title: string, r: CaptureRecipe): string {
+  const meta = [r.servings && `Serves ${r.servings}`, r.time && `⏱ ${r.time}`]
+    .filter(Boolean)
+    .join(' · ')
+  const lines: string[] = []
+  if (title) lines.push(`# ${title}`)
+  if (meta) lines.push(meta)
+  if (r.ingredients.length) {
+    lines.push('', '**Ingredients**', ...r.ingredients.map((i) => `- ${i}`))
+  }
+  if (r.steps.length) {
+    lines.push('', '**Steps**', ...r.steps.map((s, i) => `${i + 1}. ${s}`))
+  }
+  return lines.join('\n').trim()
+}
+
 export function embedBody(text: string) {
   return { content: { parts: [{ text }] } }
 }

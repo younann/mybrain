@@ -10,9 +10,15 @@ import {
   parseEmbedding,
   intentBody,
   parseIntent,
+  captureBody,
+  parseCapture,
 } from '../../src/lib/gemini-shapes'
-import { parseUrlMeta, urlMetaText } from '../../src/lib/url-meta'
+import { parseUrlMeta, urlMetaText, parseJsonLdRecipe } from '../../src/lib/url-meta'
 
+// Social sites (TikTok/Instagram) gate their og: caption tags on a real
+// browser UA, so link scraping presents itself as Chrome.
+const BROWSER_UA =
+  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
 const MODEL = 'gemini-2.5-flash'
 const EMBED_MODEL = 'text-embedding-004'
 const geminiUrl = (key: string) =>
@@ -59,6 +65,7 @@ export default async (req: Request): Promise<Response> => {
     userContext?: string
     text?: string
     url?: string
+    captureUrl?: string
     lat?: number
     lng?: number
     embedText?: string
@@ -90,6 +97,12 @@ export default async (req: Request): Promise<Response> => {
     if (payload.action === 'enrichUrl' && payload.url) {
       return reply(200, { text: await enrichUrl(payload.url) })
     }
+    if (payload.action === 'captureUrl' && payload.captureUrl) {
+      const text = await fetchLinkText(payload.captureUrl)
+      if (!text) return reply(200, { capture: null })
+      const g = await callGemini(key, captureBody(text, payload.captureUrl))
+      return reply(200, { capture: parseCapture(parseGeminiText(g)) })
+    }
     if (payload.action === 'geocode' && payload.lat != null && payload.lng != null) {
       return reply(200, { place: await reverseGeocode(payload.lat, payload.lng) })
     }
@@ -116,7 +129,7 @@ async function enrichUrl(url: string): Promise<string> {
   if (!/^https?:\/\//i.test(url)) return ''
   try {
     const res = await fetch(url, {
-      headers: { 'user-agent': 'Mozilla/5.0 (SecondBrain link preview)' },
+      headers: { 'user-agent': BROWSER_UA },
       redirect: 'follow',
     })
     if (!res.ok) return ''
@@ -125,6 +138,69 @@ async function enrichUrl(url: string): Promise<string> {
   } catch {
     return ''
   }
+}
+
+/**
+ * Best text we can scrape from a link for capture, in priority order:
+ * JSON-LD schema.org/Recipe → platform oEmbed caption → og:description + title.
+ * Returns '' when nothing usable is found (e.g. Instagram bot-blocks).
+ */
+async function fetchLinkText(url: string): Promise<string> {
+  if (!/^https?:\/\//i.test(url)) return ''
+  const parts: string[] = []
+
+  const oembed = await fetchOembed(url)
+  if (oembed) parts.push(oembed)
+
+  try {
+    const res = await fetch(url, {
+      headers: { 'user-agent': BROWSER_UA },
+      redirect: 'follow',
+    })
+    if (res.ok) {
+      const html = (await res.text()).slice(0, 600_000)
+      const recipe = parseJsonLdRecipe(html)
+      if (recipe) {
+        parts.push(
+          [
+            recipe.name,
+            recipe.ingredients.length && `Ingredients:\n${recipe.ingredients.join('\n')}`,
+            recipe.steps.length && `Instructions:\n${recipe.steps.join('\n')}`,
+          ]
+            .filter(Boolean)
+            .join('\n'),
+        )
+      }
+      const meta = urlMetaText(parseUrlMeta(html))
+      if (meta) parts.push(meta)
+    }
+  } catch {
+    /* best-effort */
+  }
+
+  return [...new Set(parts)].filter(Boolean).join('\n\n').slice(0, 8_000)
+}
+
+/** Public oEmbed caption for TikTok/YouTube (no API key). '' on failure. */
+async function fetchOembed(url: string): Promise<string> {
+  const endpoint = oembedEndpoint(url)
+  if (!endpoint) return ''
+  try {
+    const res = await fetch(endpoint, { headers: { 'user-agent': 'SecondBrain/1.0' } })
+    if (!res.ok) return ''
+    const j = (await res.json()) as { title?: string; author_name?: string }
+    return [j.title, j.author_name && `by ${j.author_name}`].filter(Boolean).join(' ')
+  } catch {
+    return ''
+  }
+}
+
+function oembedEndpoint(url: string): string {
+  const u = encodeURIComponent(url)
+  if (/tiktok\.com/i.test(url)) return `https://www.tiktok.com/oembed?url=${u}`
+  if (/youtube\.com|youtu\.be/i.test(url))
+    return `https://www.youtube.com/oembed?url=${u}&format=json`
+  return ''
 }
 
 async function reverseGeocode(lat: number, lng: number): Promise<string> {

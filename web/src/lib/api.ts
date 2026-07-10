@@ -1,6 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { PromptNote, PromptTurn } from './prompt'
-import type { Intent } from './gemini-shapes'
+import type { Intent, Capture } from './gemini-shapes'
 
 async function callGemini(
   sb: SupabaseClient,
@@ -88,6 +88,15 @@ export async function classifyIntent(
     )
   } catch {
     return { intent: 'answer' }
+  }
+}
+
+/** Scrapes + classifies a pasted link's content (best-effort; null on failure). */
+export async function captureUrl(sb: SupabaseClient, url: string): Promise<Capture | null> {
+  try {
+    return (await callGeminiJson<{ capture: Capture | null }>(sb, { action: 'captureUrl', captureUrl: url })).capture ?? null
+  } catch {
+    return null
   }
 }
 
