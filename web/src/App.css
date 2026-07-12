@@ -1071,22 +1071,43 @@ textarea:focus {
 }
 
 /* ---------- Jarvis voice + persona ---------- */
+/* Arc-reactor cyan — the one "Jarvis" accent that leaks into the warm app. */
+:root {
+  --arc: #1fb6e6;
+  --arc-ink: #7ff0ff;
+}
 .voice-btn {
   width: 46px;
   flex-shrink: 0;
   font-size: 1.15rem;
-  background: var(--surface-3);
-  border: none;
+  color: var(--arc);
+  background:
+    radial-gradient(circle at 50% 45%, color-mix(in srgb, var(--arc) 22%, transparent), transparent 70%),
+    var(--surface-3);
+  border: 1px solid color-mix(in srgb, var(--arc) 45%, transparent);
   border-radius: 12px;
-  transition: transform 0.12s ease, background 0.2s ease;
+  box-shadow: 0 0 0 0 color-mix(in srgb, var(--arc) 40%, transparent);
+  transition: transform 0.12s ease, box-shadow 0.3s ease, background 0.2s ease;
+}
+.voice-btn:hover {
+  box-shadow: 0 0 14px -2px color-mix(in srgb, var(--arc) 60%, transparent);
 }
 .voice-btn:active {
   transform: scale(0.92);
 }
 .voice-btn.active {
-  background: var(--accent);
   color: #fff;
-  animation: pulse 1.3s infinite;
+  background: radial-gradient(circle at 50% 45%, var(--arc-ink), var(--arc) 70%);
+  border-color: transparent;
+  animation: arc-throb 1.2s ease-in-out infinite;
+}
+@keyframes arc-throb {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--arc) 55%, transparent); }
+  50% { box-shadow: 0 0 18px 3px color-mix(in srgb, var(--arc) 70%, transparent); }
+}
+/* Faint arc underglow on the active tab — subtle nod, keeps the warm bg. */
+.tabbar button.active {
+  box-shadow: 0 0 16px -6px var(--arc);
 }
 .persona-pick {
   display: flex;
@@ -1096,4 +1117,272 @@ textarea:focus {
 }
 .persona-pick .segmented {
   width: 100%;
+}
+
+/* ============================================================
+   JARVIS VOICE HUD — a cinematic arc-reactor takeover
+   ============================================================ */
+.hud {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: calc(28px + env(safe-area-inset-top, 0px)) 20px
+    calc(28px + env(safe-area-inset-bottom, 0px));
+  color: var(--arc-ink);
+  background:
+    radial-gradient(120% 90% at 50% 42%, rgba(20, 70, 100, 0.35), transparent 60%),
+    radial-gradient(140% 120% at 50% 50%, #0a1420 0%, #05080e 55%, #02040a 100%);
+  overflow: hidden;
+  animation: hud-in 0.5s cubic-bezier(0.2, 0.9, 0.3, 1);
+  -webkit-tap-highlight-color: transparent;
+}
+@keyframes hud-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* faint tech grid + a slow vertical scan line */
+.hud-grid {
+  position: absolute;
+  inset: -2px;
+  background-image:
+    linear-gradient(color-mix(in srgb, var(--arc) 12%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--arc) 12%, transparent) 1px, transparent 1px);
+  background-size: 44px 44px;
+  mask-image: radial-gradient(circle at 50% 45%, #000 30%, transparent 78%);
+  -webkit-mask-image: radial-gradient(circle at 50% 45%, #000 30%, transparent 78%);
+  opacity: 0.5;
+  animation: grid-drift 14s linear infinite;
+}
+@keyframes grid-drift {
+  from { transform: translateY(0); }
+  to { transform: translateY(44px); }
+}
+.hud-scan {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 40%;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    color-mix(in srgb, var(--arc) 8%, transparent),
+    transparent
+  );
+  animation: scan 4.5s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes scan {
+  0% { transform: translateY(-60%); opacity: 0; }
+  30%, 70% { opacity: 1; }
+  100% { transform: translateY(180%); opacity: 0; }
+}
+
+/* status header */
+.hud-top {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-family: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, monospace;
+  z-index: 1;
+}
+.hud-tick {
+  color: color-mix(in srgb, var(--arc) 55%, transparent);
+  font-size: 0.8rem;
+}
+.hud-status {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 0.82rem;
+  letter-spacing: 0.42em;
+  padding-left: 0.42em;
+  color: var(--arc-ink);
+  text-shadow: 0 0 12px color-mix(in srgb, var(--arc) 70%, transparent);
+}
+.hud-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--arc-ink);
+  box-shadow: 0 0 10px var(--arc-ink);
+  animation: blink 1.1s steps(1) infinite;
+}
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0.25; }
+}
+
+/* ---- the reactor ---- */
+.hud-stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 30px;
+  z-index: 1;
+  width: 100%;
+}
+.reactor {
+  position: relative;
+  width: min(66vw, 288px);
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+}
+.reactor .ring,
+.reactor .sweep,
+.reactor .ticks {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  will-change: transform;
+}
+.ring-1 {
+  border: 1px solid color-mix(in srgb, var(--arc) 40%, transparent);
+  box-shadow:
+    0 0 40px -8px color-mix(in srgb, var(--arc) 60%, transparent),
+    inset 0 0 40px -18px color-mix(in srgb, var(--arc) 80%, transparent);
+  animation: spin 18s linear infinite;
+}
+.ring-2 {
+  inset: 13%;
+  border: 1px dashed color-mix(in srgb, var(--arc) 55%, transparent);
+  animation: spin 9s linear infinite reverse;
+}
+.ring-3 {
+  inset: 27%;
+  border: 1px solid color-mix(in srgb, var(--arc) 22%, transparent);
+  box-shadow: inset 0 0 30px -12px var(--arc);
+  animation: spin 26s linear infinite;
+}
+/* tick marks around the outer edge */
+.ticks {
+  background: repeating-conic-gradient(
+    from 0deg,
+    color-mix(in srgb, var(--arc) 70%, transparent) 0deg 0.6deg,
+    transparent 0.6deg 6deg
+  );
+  mask: radial-gradient(circle, transparent 60%, #000 62%, #000 68%, transparent 70%);
+  -webkit-mask: radial-gradient(circle, transparent 60%, #000 62%, #000 68%, transparent 70%);
+  animation: spin 40s linear infinite;
+  opacity: 0.8;
+}
+/* radar sweep */
+.sweep {
+  inset: 6%;
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg,
+    color-mix(in srgb, var(--arc) 55%, transparent) 40deg,
+    transparent 70deg
+  );
+  mask: radial-gradient(circle, transparent 40%, #000 42%);
+  -webkit-mask: radial-gradient(circle, transparent 40%, #000 42%);
+  animation: spin 3.4s linear infinite;
+}
+/* glowing core */
+.core {
+  width: 34%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 45%, #ffffff 0%, var(--arc-ink) 32%, var(--arc) 62%, transparent 78%);
+  box-shadow:
+    0 0 60px 6px color-mix(in srgb, var(--arc) 70%, transparent),
+    0 0 120px 20px color-mix(in srgb, var(--arc) 40%, transparent);
+  animation: core-breathe 3.2s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes core-breathe {
+  0%, 100% { transform: scale(0.94); opacity: 0.9; }
+  50% { transform: scale(1.06); opacity: 1; }
+}
+
+/* phase reactivity */
+.hud-listening .sweep { animation-duration: 5s; opacity: 0.7; }
+.hud-thinking .sweep { animation-duration: 1s; }
+.hud-thinking .ring-2 { animation-duration: 4s; }
+.hud-thinking .core { animation-duration: 1.1s; }
+.hud-speaking .core {
+  animation: core-pulse 0.5s ease-in-out infinite;
+}
+@keyframes core-pulse {
+  0%, 100% { transform: scale(0.92); }
+  50% { transform: scale(1.12); box-shadow: 0 0 80px 14px color-mix(in srgb, var(--arc) 80%, transparent); }
+}
+
+/* transcript + reply */
+.hud-transcript {
+  font-family: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, monospace;
+  font-size: 1rem;
+  letter-spacing: 0.02em;
+  color: color-mix(in srgb, var(--arc-ink) 85%, #fff);
+  text-align: center;
+  max-width: 30ch;
+  min-height: 3.2em;
+  line-height: 1.5;
+  margin: 0;
+  text-shadow: 0 0 18px color-mix(in srgb, var(--arc) 45%, transparent);
+}
+.hud-reply {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 500;
+  line-height: 1.35;
+  letter-spacing: -0.01em;
+  color: #f3efe6;
+  text-align: center;
+  max-width: 24ch;
+  min-height: 3.2em;
+  margin: 0;
+  text-shadow: 0 0 30px color-mix(in srgb, var(--arc) 30%, transparent);
+  animation: hud-in 0.4s ease;
+}
+
+/* footer */
+.hud-bottom {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  z-index: 1;
+}
+.hud-end {
+  font-family: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, monospace;
+  letter-spacing: 0.24em;
+  padding: 11px 26px 11px 30px;
+  color: var(--arc-ink);
+  background: color-mix(in srgb, var(--arc) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--arc) 50%, transparent);
+  border-radius: 999px;
+  transition: background 0.2s ease, box-shadow 0.2s ease, transform 0.12s ease;
+}
+.hud-end:hover {
+  background: color-mix(in srgb, var(--arc) 20%, transparent);
+  box-shadow: 0 0 20px -3px var(--arc);
+}
+.hud-end:active {
+  transform: scale(0.96);
+}
+.hud-hint {
+  font-size: 0.7rem;
+  letter-spacing: 0.05em;
+  color: color-mix(in srgb, var(--arc) 45%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hud-grid,
+  .hud-scan,
+  .reactor .ring,
+  .reactor .ticks,
+  .reactor .sweep,
+  .core {
+    animation: none !important;
+  }
 }

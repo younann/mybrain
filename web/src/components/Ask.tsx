@@ -18,6 +18,7 @@ import {
 } from '../lib/speech'
 import { MessageBubble, type Turn } from './MessageBubble'
 import { EntryDetail } from './EntryDetail'
+import { VoiceHud, type VoicePhase } from './VoiceHud'
 
 export function Ask({
   entries,
@@ -36,6 +37,8 @@ export function Ask({
   const [selected, setSelected] = useState<Entry | null>(null)
   const [voiceMode, setVoiceMode] = useState(false)
   const [listening, setListening] = useState(false)
+  const [voicePhase, setVoicePhase] = useState<VoicePhase>('listening')
+  const [voiceReply, setVoiceReply] = useState('')
 
   // Refs the async voice loop reads without re-subscribing to state.
   const voiceModeRef = useRef(false)
@@ -58,6 +61,7 @@ export function Ask({
     const q = (explicit ?? input).trim()
     if (!q && !file) return
     speakNextRef.current = fromVoice
+    if (fromVoice) setVoicePhase('thinking')
     const photo = file
     const image = photo ? URL.createObjectURL(photo) : undefined
     const prior = turns
@@ -185,6 +189,8 @@ export function Ask({
     setTurns((t) => t.map((x) => (x.id === id ? { ...x, answer, sources, loading: false } : x)))
     if (speakNextRef.current) {
       speakNextRef.current = false
+      setVoicePhase('speaking')
+      setVoiceReply(answer)
       speak(answer, () => {
         if (voiceModeRef.current) startListening()
       })
@@ -195,6 +201,8 @@ export function Ask({
 
   function startListening() {
     cancelSpeech()
+    setVoicePhase('listening')
+    setVoiceReply('')
     transcriptRef.current = ''
     const rec = createRecognizer(
       (text) => {
@@ -213,8 +221,12 @@ export function Ask({
           endVoice()
         }
       },
+      false, // non-continuous: recognition ends on a pause so we can respond
     )
-    if (!rec) return
+    if (!rec) {
+      endVoice()
+      return
+    }
     recRef.current = rec
     rec.start()
     setListening(true)
@@ -291,6 +303,9 @@ export function Ask({
       </div>
       {selected && (
         <EntryDetail entry={selected} onClose={() => setSelected(null)} onChange={onChange} />
+      )}
+      {voiceMode && (
+        <VoiceHud phase={voicePhase} transcript={input} reply={voiceReply} onClose={endVoice} />
       )}
     </div>
   )
