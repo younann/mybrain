@@ -14,6 +14,7 @@ import {
   isSpeechSupported,
   speak,
   cancelSpeech,
+  primeSpeech,
   type Recognizer,
 } from '../lib/speech'
 import { MessageBubble, type Turn } from './MessageBubble'
@@ -45,6 +46,8 @@ export function Ask({
   const speakNextRef = useRef(false)
   const transcriptRef = useRef('')
   const recRef = useRef<Recognizer | null>(null)
+  const gotResultRef = useRef(false)
+  const watchdogRef = useRef<ReturnType<typeof setTimeout>>(undefined)
 
   // A message shared into the app (PWA share target) captures immediately.
   const pendingShare = useRef(initialShare)
@@ -55,6 +58,17 @@ export function Ask({
       void submit(s)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Leaving the Ask tab must release the mic and silence any reply.
+  useEffect(() => {
+    return () => {
+      voiceModeRef.current = false
+      clearTimeout(watchdogRef.current)
+      recRef.current?.stop()
+      recRef.current = null
+      cancelSpeech()
+    }
   }, [])
 
   async function submit(explicit?: string, fromVoice = false) {
@@ -88,6 +102,10 @@ export function Ask({
         finish(id, 'I have nothing saved about that yet.', [])
         return
       }
+
+      // Kick off the retrieval embedding now so it runs in parallel with intent
+      // classification (both hit the network) — shaves a round-trip off answers.
+      const qEmbP = !photo ? embedText(supabase, q).catch(() => [] as number[]) : null
 
       // Text-only messages may be an action (add / delete), not a question.
       if (!photo) {
@@ -131,7 +149,7 @@ export function Ask({
       }
 
       let pool = entries
-      const qEmb = await embedText(supabase, queryText || 'image')
+      const qEmb = qEmbP ? await qEmbP : await embedText(supabase, queryText || 'image')
       if (qEmb.length) {
         const matched = await matchEntries(supabase, qEmb, 8).catch(() => [])
         if (matched.length) pool = matched
@@ -155,7 +173,12 @@ export function Ask({
       const { text, sourceIndices } = parseAnswer(raw)
       finish(id, text, sourceIndices.map((i) => pool[i]).filter(Boolean))
     } catch (e) {
-      finish(id, `⚠️ ${(e as Error).message}`, [])
+      // In a voice session, speak a clean line (and keep the loop alive) instead
+      // of reading a raw error; typed turns still see the real message.
+      const msg = speakNextRef.current
+        ? 'Sorry, something went wrong. Please try again.'
+        : `⚠️ ${(e as Error).message}`
+      finish(id, msg, [])
     }
   }
 
@@ -189,6 +212,9 @@ export function Ask({
     setTurns((t) => t.map((x) => (x.id === id ? { ...x, answer, sources, loading: false } : x)))
     if (speakNextRef.current) {
       speakNextRef.current = false
+      // The session may have ended (tapped END, left the tab) while the answer
+      // was in flight — don't speak into the void.
+      if (!voiceModeRef.current) return
       setVoicePhase('speaking')
       setVoiceReply(answer)
       speak(answer, () => {
@@ -204,12 +230,15 @@ export function Ask({
     setVoicePhase('listening')
     setVoiceReply('')
     transcriptRef.current = ''
+    gotResultRef.current = false
     const rec = createRecognizer(
       (text) => {
+        gotResultRef.current = true
         transcriptRef.current = text
         setInput(text)
       },
       () => {
+        clearTimeout(watchdogRef.current)
         recRef.current = null
         setListening(false)
         const text = transcriptRef.current.trim()
@@ -228,14 +257,27 @@ export function Ask({
       return
     }
     recRef.current = rec
-    rec.start()
+    try {
+      rec.start()
+    } catch {
+      endVoice()
+      return
+    }
     setListening(true)
+    // Dead-mic watchdog: iOS Safari can silently fail to (re)start recognition
+    // — mic indicator on, no result, no end. End the session rather than hang
+    // on LISTENING forever. Only fires if nothing was heard at all.
+    clearTimeout(watchdogRef.current)
+    watchdogRef.current = setTimeout(() => {
+      if (recRef.current === rec && !gotResultRef.current) endVoice()
+    }, 10_000)
   }
 
   function endVoice() {
     voiceModeRef.current = false
     setVoiceMode(false)
     setListening(false)
+    clearTimeout(watchdogRef.current)
     recRef.current?.stop()
     recRef.current = null
     cancelSpeech()
@@ -245,6 +287,7 @@ export function Ask({
     if (voiceModeRef.current) {
       endVoice()
     } else {
+      primeSpeech() // unlock TTS inside this tap (needed on iOS)
       voiceModeRef.current = true
       setVoiceMode(true)
       startListening()

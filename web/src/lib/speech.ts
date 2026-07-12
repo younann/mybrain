@@ -47,8 +47,17 @@ export function createRecognizer(
     for (let i = 0; i < e.results.length; i++) text += e.results[i][0].transcript
     onResult(text)
   }
-  rec.onend = onEnd
-  rec.onerror = onEnd
+  // A single recognition can fire both `error` and `end`; collapse them so the
+  // voice loop's completion runs exactly once (a mid-utterance error otherwise
+  // double-submits the transcript).
+  let ended = false
+  const end = () => {
+    if (ended) return
+    ended = true
+    onEnd()
+  }
+  rec.onend = end
+  rec.onerror = end
   return { start: () => rec.start(), stop: () => rec.stop() }
 }
 
@@ -58,20 +67,63 @@ export function isSpeechOutputSupported(): boolean {
   return typeof window !== 'undefined' && 'speechSynthesis' in window
 }
 
+/**
+ * Unlocks speech synthesis inside a user gesture (the mic tap). iOS Safari
+ * refuses to speak text that isn't tied to a recent gesture, so we play a
+ * silent utterance now to open the audio session for later replies. Also warms
+ * the voice list. Safe to call repeatedly.
+ */
+export function primeSpeech(): void {
+  if (!isSpeechOutputSupported()) return
+  try {
+    const synth = window.speechSynthesis
+    synth.getVoices() // triggers async voice load on some browsers
+    const u = new SpeechSynthesisUtterance(' ')
+    u.volume = 0
+    synth.speak(u)
+    synth.resume()
+  } catch {
+    /* best-effort */
+  }
+}
+
 /** Speaks text aloud; calls onEnd when finished (or immediately if unsupported). */
 export function speak(text: string, onEnd?: () => void): void {
   if (!isSpeechOutputSupported() || !text.trim()) {
     onEnd?.()
     return
   }
-  window.speechSynthesis.cancel()
+  const synth = window.speechSynthesis
+  synth.cancel()
   const u = new SpeechSynthesisUtterance(text)
   u.lang = navigator.language || 'en-US'
   u.rate = 1.02
   u.pitch = 1
-  u.onend = () => onEnd?.()
-  u.onerror = () => onEnd?.()
-  window.speechSynthesis.speak(u)
+
+  let done = false
+  let poll: ReturnType<typeof setInterval>
+  let hardCap: ReturnType<typeof setTimeout>
+  const finish = () => {
+    if (done) return
+    done = true
+    clearInterval(poll)
+    clearTimeout(hardCap)
+    onEnd?.()
+  }
+  u.onend = finish
+  u.onerror = finish
+
+  synth.speak(u)
+  // Chrome occasionally queues in a paused state; nudge it.
+  if (synth.paused) synth.resume()
+
+  // Safety net for mobile browsers that never fire onend: finish only once
+  // synthesis has actually gone idle, so we never cut a reply short. A hard
+  // ceiling guards against a wedged queue.
+  poll = setInterval(() => {
+    if (!synth.speaking && !synth.pending) finish()
+  }, 1_500)
+  hardCap = setTimeout(finish, 180_000)
 }
 
 export function cancelSpeech(): void {
