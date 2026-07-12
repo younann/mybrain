@@ -14,6 +14,7 @@ import {
   parseCapture,
 } from '../../src/lib/gemini-shapes'
 import { parseUrlMeta, urlMetaText, parseJsonLdRecipe } from '../../src/lib/url-meta'
+import { personaInstruction } from '../../src/lib/persona'
 
 // Social sites (TikTok/Instagram) gate their og: caption tags on a real
 // browser UA, so link scraping presents itself as Chrome.
@@ -71,6 +72,7 @@ export default async (req: Request): Promise<Response> => {
     embedText?: string
     message?: string
     nowIso?: string
+    persona?: string
   }
   try {
     payload = await req.json()
@@ -86,7 +88,13 @@ export default async (req: Request): Promise<Response> => {
     if (payload.action === 'answer' && payload.question) {
       const g = await callGemini(
         key,
-        answerBody(payload.question, payload.notes ?? [], payload.history ?? [], payload.userContext ?? ''),
+        answerBody(
+          payload.question,
+          payload.notes ?? [],
+          payload.history ?? [],
+          payload.userContext ?? '',
+          personaInstruction(payload.persona ?? ''),
+        ),
       )
       return reply(200, { text: parseGeminiText(g) })
     }

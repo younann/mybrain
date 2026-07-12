@@ -25,9 +25,12 @@ export function answerBody(
   notes: PromptNote[],
   history: PromptTurn[] = [],
   userContext = '',
+  personaInstruction = '',
 ) {
   return {
-    contents: [{ parts: [{ text: buildAnswerPrompt(question, notes, history, userContext) }] }],
+    contents: [
+      { parts: [{ text: buildAnswerPrompt(question, notes, history, userContext, personaInstruction) }] },
+    ],
   }
 }
 

@@ -1069,3 +1069,31 @@ textarea:focus {
 .cook-nav button {
   flex: 1;
 }
+
+/* ---------- Jarvis voice + persona ---------- */
+.voice-btn {
+  width: 46px;
+  flex-shrink: 0;
+  font-size: 1.15rem;
+  background: var(--surface-3);
+  border: none;
+  border-radius: 12px;
+  transition: transform 0.12s ease, background 0.2s ease;
+}
+.voice-btn:active {
+  transform: scale(0.92);
+}
+.voice-btn.active {
+  background: var(--accent);
+  color: #fff;
+  animation: pulse 1.3s infinite;
+}
+.persona-pick {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 4px 2px 2px;
+}
+.persona-pick .segmented {
+  width: 100%;
+}
