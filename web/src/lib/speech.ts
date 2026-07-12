@@ -47,8 +47,17 @@ export function createRecognizer(
     for (let i = 0; i < e.results.length; i++) text += e.results[i][0].transcript
     onResult(text)
   }
-  rec.onend = onEnd
-  rec.onerror = onEnd
+  // A single recognition can fire both `error` and `end`; collapse them so the
+  // voice loop's completion runs exactly once (a mid-utterance error otherwise
+  // double-submits the transcript).
+  let ended = false
+  const end = () => {
+    if (ended) return
+    ended = true
+    onEnd()
+  }
+  rec.onend = end
+  rec.onerror = end
   return { start: () => rec.start(), stop: () => rec.stop() }
 }
 
@@ -92,9 +101,13 @@ export function speak(text: string, onEnd?: () => void): void {
   u.pitch = 1
 
   let done = false
+  let poll: ReturnType<typeof setInterval>
+  let hardCap: ReturnType<typeof setTimeout>
   const finish = () => {
     if (done) return
     done = true
+    clearInterval(poll)
+    clearTimeout(hardCap)
     onEnd?.()
   }
   u.onend = finish
@@ -103,10 +116,14 @@ export function speak(text: string, onEnd?: () => void): void {
   synth.speak(u)
   // Chrome occasionally queues in a paused state; nudge it.
   if (synth.paused) synth.resume()
-  // Safety net: if the utterance never fires onend (blocked/dropped on some
-  // mobile browsers), don't leave the voice loop hanging forever.
-  const capMs = Math.min(20_000, 1_800 + text.length * 80)
-  setTimeout(finish, capMs)
+
+  // Safety net for mobile browsers that never fire onend: finish only once
+  // synthesis has actually gone idle, so we never cut a reply short. A hard
+  // ceiling guards against a wedged queue.
+  poll = setInterval(() => {
+    if (!synth.speaking && !synth.pending) finish()
+  }, 1_500)
+  hardCap = setTimeout(finish, 180_000)
 }
 
 export function cancelSpeech(): void {
