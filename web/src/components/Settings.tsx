@@ -6,6 +6,7 @@ import { searchableText } from '../lib/types'
 import type { Entry } from '../lib/types'
 import { saveProfile, type Profile } from '../lib/profile'
 import { enablePush, pushSupported, type PushResult } from '../lib/push'
+import { PERSONAS, getPersona, setPersona, type PersonaId } from '../lib/persona'
 import { useSignedImage } from '../lib/useSignedImage'
 
 const PUSH_MSG: Record<PushResult, string> = {
@@ -37,7 +38,13 @@ export function Settings({
   const [indexing, setIndexing] = useState(false)
   const [status, setStatus] = useState<string | null>(null)
   const [pushMsg, setPushMsg] = useState<string | null>(null)
+  const [persona, setPersonaState] = useState<PersonaId>(getPersona())
   const avatarUrl = useSignedImage(avatarPath)
+
+  function pickPersona(id: PersonaId) {
+    setPersonaState(id)
+    setPersona(id)
+  }
 
   async function turnOnPush() {
     setPushMsg('Enabling…')
@@ -113,6 +120,23 @@ export function Settings({
             </button>
             {savedMsg && <span className="muted small">{savedMsg}</span>}
           </div>
+        </div>
+
+        <div className="persona-pick">
+          <span className="field-label">🎙️ Assistant voice</span>
+          <div className="segmented">
+            {PERSONAS.map((p) => (
+              <button
+                key={p.id}
+                className={persona === p.id ? 'active' : ''}
+                onClick={() => pickPersona(p.id)}
+                title={p.description}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
+          <span className="muted small">{PERSONAS.find((p) => p.id === persona)?.description}</span>
         </div>
 
         <div className="row">

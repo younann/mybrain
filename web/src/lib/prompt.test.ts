@@ -13,6 +13,16 @@ describe('buildAnswerPrompt', () => {
     expect(p).toMatch(/nothing saved/i)
     expect(p).toContain('QUESTION: where to eat?')
   })
+
+  it('prepends the persona instruction when given', () => {
+    const p = buildAnswerPrompt('hi', [], [], '', 'Adopt the persona of Jarvis.')
+    expect(p.startsWith('Adopt the persona of Jarvis.')).toBe(true)
+  })
+
+  it('omits the persona preamble when empty', () => {
+    const p = buildAnswerPrompt('hi', [])
+    expect(p.startsWith("You are the user's personal memory")).toBe(true)
+  })
 })
 
 describe('parseAnswer', () => {

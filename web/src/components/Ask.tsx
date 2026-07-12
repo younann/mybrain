@@ -8,6 +8,14 @@ import { fileToBase64 } from '../lib/image'
 import { searchableText } from '../lib/types'
 import type { Entry } from '../lib/types'
 import { profileContext, type Profile } from '../lib/profile'
+import { getPersona } from '../lib/persona'
+import {
+  createRecognizer,
+  isSpeechSupported,
+  speak,
+  cancelSpeech,
+  type Recognizer,
+} from '../lib/speech'
 import { MessageBubble, type Turn } from './MessageBubble'
 import { EntryDetail } from './EntryDetail'
 
@@ -26,6 +34,14 @@ export function Ask({
   const [input, setInput] = useState('')
   const [file, setFile] = useState<File | null>(null)
   const [selected, setSelected] = useState<Entry | null>(null)
+  const [voiceMode, setVoiceMode] = useState(false)
+  const [listening, setListening] = useState(false)
+
+  // Refs the async voice loop reads without re-subscribing to state.
+  const voiceModeRef = useRef(false)
+  const speakNextRef = useRef(false)
+  const transcriptRef = useRef('')
+  const recRef = useRef<Recognizer | null>(null)
 
   // A message shared into the app (PWA share target) captures immediately.
   const pendingShare = useRef(initialShare)
@@ -38,9 +54,10 @@ export function Ask({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  async function submit(explicit?: string) {
+  async function submit(explicit?: string, fromVoice = false) {
     const q = (explicit ?? input).trim()
     if (!q && !file) return
+    speakNextRef.current = fromVoice
     const photo = file
     const image = photo ? URL.createObjectURL(photo) : undefined
     const prior = turns
@@ -123,7 +140,14 @@ export function Ask({
         .map((t) => ({ question: t.question, answer: t.answer }))
       const answerQ = photo ? `${displayQ} (the attached photo shows: ${queryText})` : q
 
-      const raw = await answerQuestion(supabase, answerQ, notes, history, profileContext(profile))
+      const raw = await answerQuestion(
+        supabase,
+        answerQ,
+        notes,
+        history,
+        profileContext(profile),
+        getPersona(),
+      )
       const { text, sourceIndices } = parseAnswer(raw)
       finish(id, text, sourceIndices.map((i) => pool[i]).filter(Boolean))
     } catch (e) {
@@ -159,6 +183,60 @@ export function Ask({
 
   function finish(id: number, answer: string, sources: Entry[]) {
     setTurns((t) => t.map((x) => (x.id === id ? { ...x, answer, sources, loading: false } : x)))
+    if (speakNextRef.current) {
+      speakNextRef.current = false
+      speak(answer, () => {
+        if (voiceModeRef.current) startListening()
+      })
+    }
+  }
+
+  // ---- Hands-free voice session ----
+
+  function startListening() {
+    cancelSpeech()
+    transcriptRef.current = ''
+    const rec = createRecognizer(
+      (text) => {
+        transcriptRef.current = text
+        setInput(text)
+      },
+      () => {
+        recRef.current = null
+        setListening(false)
+        const text = transcriptRef.current.trim()
+        if (voiceModeRef.current && text) {
+          setInput('')
+          void submit(text, true)
+        } else {
+          // Silence (or stopped with nothing said) ends the session.
+          endVoice()
+        }
+      },
+    )
+    if (!rec) return
+    recRef.current = rec
+    rec.start()
+    setListening(true)
+  }
+
+  function endVoice() {
+    voiceModeRef.current = false
+    setVoiceMode(false)
+    setListening(false)
+    recRef.current?.stop()
+    recRef.current = null
+    cancelSpeech()
+  }
+
+  function toggleVoice() {
+    if (voiceModeRef.current) {
+      endVoice()
+    } else {
+      voiceModeRef.current = true
+      setVoiceMode(true)
+      startListening()
+    }
   }
 
   return (
@@ -189,14 +267,27 @@ export function Ask({
           />
         </label>
         <input
-          placeholder={file ? 'Ask about this photo…' : 'Ask a question…'}
+          placeholder={
+            listening ? 'Listening…' : file ? 'Ask about this photo…' : 'Ask a question…'
+          }
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && submit()}
         />
-        <button onClick={() => submit()} disabled={!input.trim() && !file}>
-          ↑
-        </button>
+        {voiceMode || (isSpeechSupported() && !input.trim() && !file) ? (
+          <button
+            className={voiceMode ? 'voice-btn active' : 'voice-btn'}
+            onClick={toggleVoice}
+            title={voiceMode ? 'Stop' : 'Talk to Jarvis'}
+            aria-label={voiceMode ? 'Stop voice' : 'Start voice'}
+          >
+            {voiceMode ? '⏹' : '🎙️'}
+          </button>
+        ) : (
+          <button onClick={() => submit()} disabled={!input.trim() && !file}>
+            ↑
+          </button>
+        )}
       </div>
       {selected && (
         <EntryDetail entry={selected} onClose={() => setSelected(null)} onChange={onChange} />

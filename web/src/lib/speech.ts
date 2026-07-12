@@ -45,3 +45,29 @@ export function createRecognizer(
   rec.onerror = onEnd
   return { start: () => rec.start(), stop: () => rec.stop() }
 }
+
+// ---- Text to speech ----
+
+export function isSpeechOutputSupported(): boolean {
+  return typeof window !== 'undefined' && 'speechSynthesis' in window
+}
+
+/** Speaks text aloud; calls onEnd when finished (or immediately if unsupported). */
+export function speak(text: string, onEnd?: () => void): void {
+  if (!isSpeechOutputSupported() || !text.trim()) {
+    onEnd?.()
+    return
+  }
+  window.speechSynthesis.cancel()
+  const u = new SpeechSynthesisUtterance(text)
+  u.lang = navigator.language || 'en-US'
+  u.rate = 1.02
+  u.pitch = 1
+  u.onend = () => onEnd?.()
+  u.onerror = () => onEnd?.()
+  window.speechSynthesis.speak(u)
+}
+
+export function cancelSpeech(): void {
+  if (isSpeechOutputSupported()) window.speechSynthesis.cancel()
+}

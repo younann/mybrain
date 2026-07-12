@@ -30,8 +30,9 @@ export function answerQuestion(
   notes: PromptNote[],
   history: PromptTurn[] = [],
   userContext = '',
+  persona = '',
 ): Promise<string> {
-  return callGemini(sb, { action: 'answer', question, notes, history, userContext })
+  return callGemini(sb, { action: 'answer', question, notes, history, userContext, persona })
 }
 
 async function callGeminiJson<T>(sb: SupabaseClient, payload: Record<string, unknown>): Promise<T> {
