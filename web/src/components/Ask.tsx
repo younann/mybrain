@@ -14,6 +14,7 @@ import {
   isSpeechSupported,
   speak,
   cancelSpeech,
+  primeSpeech,
   type Recognizer,
 } from '../lib/speech'
 import { MessageBubble, type Turn } from './MessageBubble'
@@ -89,6 +90,10 @@ export function Ask({
         return
       }
 
+      // Kick off the retrieval embedding now so it runs in parallel with intent
+      // classification (both hit the network) — shaves a round-trip off answers.
+      const qEmbP = !photo ? embedText(supabase, q).catch(() => [] as number[]) : null
+
       // Text-only messages may be an action (add / delete), not a question.
       if (!photo) {
         const intent = await classifyIntent(supabase, q, new Date().toISOString())
@@ -131,7 +136,7 @@ export function Ask({
       }
 
       let pool = entries
-      const qEmb = await embedText(supabase, queryText || 'image')
+      const qEmb = qEmbP ? await qEmbP : await embedText(supabase, queryText || 'image')
       if (qEmb.length) {
         const matched = await matchEntries(supabase, qEmb, 8).catch(() => [])
         if (matched.length) pool = matched
@@ -245,6 +250,7 @@ export function Ask({
     if (voiceModeRef.current) {
       endVoice()
     } else {
+      primeSpeech() // unlock TTS inside this tap (needed on iOS)
       voiceModeRef.current = true
       setVoiceMode(true)
       startListening()
