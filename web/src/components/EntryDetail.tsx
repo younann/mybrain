@@ -6,6 +6,8 @@ import { describeImage, embedText } from '../lib/api'
 import { fileToBase64 } from '../lib/image'
 import { toLocalInput, fromLocalInput, reminderInfo, formatDue } from '../lib/reminders'
 import { searchableText, type Entry, type NewEntry } from '../lib/types'
+import { isRecipe, parseRecipeMarkdown } from '../lib/recipe'
+import { CookMode } from './CookMode'
 
 const ICON: Record<Entry['type'], string> = { text: '📝', photo: '📷', url: '🔗' }
 
@@ -25,6 +27,8 @@ export function EntryDetail({
   const [recurs, setRecurs] = useState(entry.recurs || 'none')
   const [newPhoto, setNewPhoto] = useState<File | null>(null)
   const [busy, setBusy] = useState(false)
+  const [cooking, setCooking] = useState(false)
+  const recipe = isRecipe(entry)
 
   const img = useSignedImage(newPhoto ? null : entry.type === 'photo' ? entry.image_path : null)
   const rem = reminderInfo(entry, new Date())
@@ -160,6 +164,11 @@ export function EntryDetail({
               </div>
             )}
             <div className="detail-date">{new Date(entry.created_at).toLocaleString()}</div>
+            {recipe && (
+              <button className="cook-cta" onClick={() => setCooking(true)}>
+                👨‍🍳 Cook this
+              </button>
+            )}
             <div className="modal-actions">
               <button className="ghost danger" onClick={del} disabled={busy}>
                 Delete
@@ -172,6 +181,9 @@ export function EntryDetail({
           </>
         )}
       </div>
+      {cooking && (
+        <CookMode recipe={parseRecipeMarkdown(entry.extracted_text)} onClose={() => setCooking(false)} />
+      )}
     </div>
   )
 }
