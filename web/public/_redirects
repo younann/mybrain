@@ -1,0 +1,3 @@
+# PWA share-target: first (non-service-worker) load of /share serves the SPA.
+# A 200 rewrite keeps the ?title/text/url query intact for the app to read.
+/share  /index.html  200

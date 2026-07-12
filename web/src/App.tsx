@@ -12,14 +12,25 @@ import { Reminders } from './components/Reminders'
 import { Settings } from './components/Settings'
 import { reminderInfo } from './lib/reminders'
 import { notifyDue } from './lib/notify'
+import { parseShare, isShareLaunch } from './lib/share'
 import './App.css'
 
 type Tab = 'brain' | 'ask' | 'map' | 'reminders' | 'settings'
 
+// A share-target launch (/share?…) is consumed once at startup, then the URL is
+// cleaned so a refresh doesn't re-capture.
+function consumeShare(): string | undefined {
+  if (!isShareLaunch(window.location.pathname)) return undefined
+  const shared = parseShare(window.location.search)
+  window.history.replaceState(null, '', '/')
+  return shared
+}
+
 export default function App() {
   const [session, setSession] = useState<Session | null>(null)
   const [ready, setReady] = useState(false)
-  const [tab, setTab] = useState<Tab>('brain')
+  const [shared] = useState(consumeShare)
+  const [tab, setTab] = useState<Tab>(shared ? 'ask' : 'brain')
   const [entries, setEntries] = useState<Entry[]>([])
   const [profile, setProfile] = useState<Profile | null>(null)
 
@@ -79,7 +90,9 @@ export default function App() {
             onChange={refresh}
           />
         )}
-        {tab === 'ask' && <Ask entries={entries} profile={profile} onChange={refresh} />}
+        {tab === 'ask' && (
+          <Ask entries={entries} profile={profile} onChange={refresh} initialShare={shared} />
+        )}
         {tab === 'map' && <MapView entries={entries} onChange={refresh} />}
         {tab === 'reminders' && <Reminders entries={entries} onChange={refresh} />}
         {tab === 'settings' && (

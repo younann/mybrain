@@ -10,7 +10,11 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['icon.svg', 'push-sw.js'],
-      workbox: { importScripts: ['push-sw.js'] },
+      workbox: {
+        importScripts: ['push-sw.js'],
+        navigateFallback: '/index.html',
+        navigateFallbackDenylist: [/^\/api\//],
+      },
       manifest: {
         name: 'Second Brain',
         short_name: 'Brain',
@@ -22,6 +26,12 @@ export default defineConfig({
         icons: [
           { src: 'icon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any maskable' },
         ],
+        // Appear in the OS share sheet; shared text/url lands on /share (GET).
+        share_target: {
+          action: '/share',
+          method: 'GET',
+          params: { title: 'title', text: 'text', url: 'url' },
+        },
       },
     }),
   ],

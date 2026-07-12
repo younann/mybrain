@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { answerQuestion, embedText, describeImage, classifyIntent, captureUrl } from '../lib/api'
 import { matchEntries, addEntry, removeEntry, toVector } from '../lib/entries'
@@ -15,18 +15,31 @@ export function Ask({
   entries,
   profile,
   onChange,
+  initialShare,
 }: {
   entries: Entry[]
   profile: Profile | null
   onChange: () => void
+  initialShare?: string
 }) {
   const [turns, setTurns] = useState<Turn[]>([])
   const [input, setInput] = useState('')
   const [file, setFile] = useState<File | null>(null)
   const [selected, setSelected] = useState<Entry | null>(null)
 
-  async function submit() {
-    const q = input.trim()
+  // A message shared into the app (PWA share target) captures immediately.
+  const pendingShare = useRef(initialShare)
+  useEffect(() => {
+    if (pendingShare.current) {
+      const s = pendingShare.current
+      pendingShare.current = undefined
+      void submit(s)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  async function submit(explicit?: string) {
+    const q = (explicit ?? input).trim()
     if (!q && !file) return
     const photo = file
     const image = photo ? URL.createObjectURL(photo) : undefined
@@ -37,13 +50,9 @@ export function Ask({
     const displayQ = q || 'What do I have about this?'
     setTurns((t) => [...t, { id, question: displayQ, image, answer: '', sources: [], loading: true }])
 
-    if (entries.length === 0) {
-      finish(id, 'I have nothing saved about that yet.', [])
-      return
-    }
-
     try {
-      // A pasted link → capture it silently as a searchable entry.
+      // A pasted/shared link → capture it silently as a searchable entry.
+      // Runs before the empty-brain guard so a first-ever share still saves.
       const url = !photo ? firstUrl(q) : undefined
       if (url) {
         const saved = await captureLink(url, q)
@@ -52,6 +61,11 @@ export function Ask({
           return
         }
         // Nothing usable at the link — fall through to the normal answer flow.
+      }
+
+      if (entries.length === 0) {
+        finish(id, 'I have nothing saved about that yet.', [])
+        return
       }
 
       // Text-only messages may be an action (add / delete), not a question.
@@ -180,7 +194,7 @@ export function Ask({
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && submit()}
         />
-        <button onClick={submit} disabled={!input.trim() && !file}>
+        <button onClick={() => submit()} disabled={!input.trim() && !file}>
           ↑
         </button>
       </div>
