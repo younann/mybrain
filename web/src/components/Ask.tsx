@@ -218,7 +218,9 @@ export function Ask({
       setVoicePhase('speaking')
       setVoiceReply(answer)
       speak(answer, () => {
-        if (voiceModeRef.current) startListening()
+        // Tap-to-talk: after the reply, wait for the next tap rather than
+        // auto-reopening the mic (more reliable, especially on iOS).
+        if (voiceModeRef.current) setVoicePhase('idle')
       })
     }
   }
@@ -241,13 +243,15 @@ export function Ask({
         clearTimeout(watchdogRef.current)
         recRef.current = null
         setListening(false)
+        if (!voiceModeRef.current) return
         const text = transcriptRef.current.trim()
-        if (voiceModeRef.current && text) {
+        if (text) {
           setInput('')
           void submit(text, true)
         } else {
-          // Silence (or stopped with nothing said) ends the session.
-          endVoice()
+          // Nothing heard — return to the ready state; the session stays open
+          // so the user can tap to talk again (only END closes it).
+          setVoicePhase('idle')
         }
       },
       false, // non-continuous: recognition ends on a pause so we can respond
@@ -260,16 +264,21 @@ export function Ask({
     try {
       rec.start()
     } catch {
-      endVoice()
+      setVoicePhase('idle')
       return
     }
     setListening(true)
-    // Dead-mic watchdog: iOS Safari can silently fail to (re)start recognition
-    // — mic indicator on, no result, no end. End the session rather than hang
-    // on LISTENING forever. Only fires if nothing was heard at all.
+    // Dead-mic watchdog: iOS Safari can silently fail to start recognition
+    // (mic on, no result, no end). Fall back to the ready state so the user can
+    // retry with a fresh tap, rather than hanging on LISTENING forever.
     clearTimeout(watchdogRef.current)
     watchdogRef.current = setTimeout(() => {
-      if (recRef.current === rec && !gotResultRef.current) endVoice()
+      if (recRef.current === rec && !gotResultRef.current) {
+        recRef.current?.stop()
+        recRef.current = null
+        setListening(false)
+        setVoicePhase('idle')
+      }
     }, 10_000)
   }
 
@@ -348,7 +357,16 @@ export function Ask({
         <EntryDetail entry={selected} onClose={() => setSelected(null)} onChange={onChange} />
       )}
       {voiceMode && (
-        <VoiceHud phase={voicePhase} transcript={input} reply={voiceReply} onClose={endVoice} />
+        <VoiceHud
+          phase={voicePhase}
+          transcript={input}
+          reply={voiceReply}
+          onTalk={() => {
+            if (!listening) startListening()
+          }}
+          onStop={() => recRef.current?.stop()}
+          onClose={endVoice}
+        />
       )}
     </div>
   )

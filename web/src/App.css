@@ -1317,6 +1317,24 @@ textarea:focus {
   50% { transform: scale(1.12); box-shadow: 0 0 80px 14px color-mix(in srgb, var(--arc) 80%, transparent); }
 }
 
+/* idle (ready to talk): dimmed, with an inviting outward tap-pulse */
+.hud-idle,
+.hud-speaking {
+  cursor: pointer;
+}
+.hud-idle .sweep { opacity: 0; }
+.hud-idle .core {
+  animation: core-breathe 4.5s ease-in-out infinite;
+  opacity: 0.8;
+}
+.hud-idle .ring-1 {
+  animation: tap-invite 2.4s ease-out infinite;
+}
+@keyframes tap-invite {
+  0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--arc) 45%, transparent); }
+  70%, 100% { box-shadow: 0 0 0 22px transparent; }
+}
+
 /* transcript + reply */
 .hud-transcript {
   font-family: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, monospace;
