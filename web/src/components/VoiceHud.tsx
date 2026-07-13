@@ -1,29 +1,50 @@
-export type VoicePhase = 'listening' | 'thinking' | 'speaking'
+export type VoicePhase = 'idle' | 'listening' | 'thinking' | 'speaking'
 
 const LABEL: Record<VoicePhase, string> = {
+  idle: 'TAP TO TALK',
   listening: 'LISTENING',
   thinking: 'PROCESSING',
   speaking: 'RESPONDING',
 }
 
+const HINT: Record<VoicePhase, string> = {
+  idle: 'tap anywhere to talk',
+  listening: 'tap to send',
+  thinking: '',
+  speaking: 'tap to interrupt',
+}
+
 /**
- * Full-screen Jarvis takeover shown during a hands-free voice session — an
- * arc-reactor core that reacts to each phase, with the live transcript and the
- * spoken reply. Tapping anywhere (or the end control) closes the session.
+ * Full-screen Jarvis takeover for a tap-to-talk voice session. The whole stage
+ * is the control: tap to start a turn (idle/speaking), tap again to send early
+ * (listening); END closes. Each turn is its own tap — a fresh user gesture,
+ * which iOS speech recognition needs.
  */
 export function VoiceHud({
   phase,
   transcript,
   reply,
+  onTalk,
+  onStop,
   onClose,
 }: {
   phase: VoicePhase
   transcript: string
   reply: string
+  onTalk: () => void
+  onStop: () => void
   onClose: () => void
 }) {
+  function onStage() {
+    if (phase === 'listening') onStop()
+    else if (phase === 'idle' || phase === 'speaking') onTalk()
+    // 'thinking' — ignore taps while a reply is in flight
+  }
+
+  const showReply = (phase === 'speaking' || phase === 'idle') && reply
+
   return (
-    <div className={`hud hud-${phase}`} onClick={onClose}>
+    <div className={`hud hud-${phase}`} onClick={onStage}>
       <div className="hud-grid" />
       <div className="hud-scan" />
 
@@ -35,7 +56,7 @@ export function VoiceHud({
         <span className="hud-tick right">◥</span>
       </div>
 
-      <div className="hud-stage" onClick={(e) => e.stopPropagation()}>
+      <div className="hud-stage">
         <div className="reactor" aria-hidden>
           <span className="ring ring-1" />
           <span className="ring ring-2" />
@@ -45,16 +66,22 @@ export function VoiceHud({
           <span className="core" />
         </div>
 
-        {phase === 'speaking' && reply ? (
+        {showReply ? (
           <p className="hud-reply">{reply}</p>
         ) : (
           <p className="hud-transcript">
-            {transcript || (phase === 'thinking' ? '…' : 'Speak — I’m listening')}
+            {transcript ||
+              (phase === 'thinking'
+                ? '…'
+                : phase === 'listening'
+                  ? 'Speak — I’m listening'
+                  : 'Tap anywhere to talk')}
           </p>
         )}
       </div>
 
       <div className="hud-bottom">
+        {HINT[phase] && <span className="hud-hint">{HINT[phase]}</span>}
         <button
           className="hud-end"
           onClick={(e) => {
@@ -64,7 +91,6 @@ export function VoiceHud({
         >
           ⏹ END
         </button>
-        <span className="hud-hint">tap anywhere to close</span>
       </div>
     </div>
   )
