@@ -1,5 +1,7 @@
+import { useState } from 'react'
 import { useSignedImage } from '../lib/useSignedImage'
 import type { Entry } from '../lib/types'
+import type { Rating } from '../lib/feedback'
 
 export interface Turn {
   id: number
@@ -8,7 +10,11 @@ export interface Turn {
   answer: string
   sources: Entry[]
   loading: boolean
+  ratable?: boolean
+  rating?: Rating
 }
+
+const REASONS = ['too long', 'wrong', 'not what I meant', 'other']
 
 function SourceChip({ entry, onSelect }: { entry: Entry; onSelect: (e: Entry) => void }) {
   const img = useSignedImage(entry.type === 'photo' ? entry.image_path : null)
@@ -28,10 +34,18 @@ function SourceChip({ entry, onSelect }: { entry: Entry; onSelect: (e: Entry) =>
 export function MessageBubble({
   turn,
   onSelect,
+  onFeedback,
+  onReason,
+  onRetry,
 }: {
   turn: Turn
   onSelect: (e: Entry) => void
+  onFeedback?: (id: number, rating: Rating) => void
+  onReason?: (id: number, reason: string) => void
+  onRetry?: (id: number, reason: string | null) => void
 }) {
+  const [reason, setReason] = useState<string | null>(null)
+
   return (
     <div className="turn">
       <div className="q">
@@ -52,6 +66,42 @@ export function MessageBubble({
               {turn.sources.map((s) => (
                 <SourceChip key={s.id} entry={s} onSelect={onSelect} />
               ))}
+            </div>
+          )}
+          {turn.ratable && onFeedback && (
+            <div className="rate">
+              {!turn.rating && (
+                <>
+                  <button className="rate-btn" onClick={() => onFeedback(turn.id, 'up')} title="Good answer">
+                    👍
+                  </button>
+                  <button className="rate-btn" onClick={() => onFeedback(turn.id, 'down')} title="Bad answer">
+                    👎
+                  </button>
+                </>
+              )}
+              {turn.rating === 'up' && <span className="rate-done">👍 Noted — thanks.</span>}
+              {turn.rating === 'down' && (
+                <div className="rate-down">
+                  <div className="rate-reasons">
+                    {REASONS.map((r) => (
+                      <button
+                        key={r}
+                        className={reason === r ? 'chip active' : 'chip'}
+                        onClick={() => {
+                          setReason(r)
+                          onReason?.(turn.id, r)
+                        }}
+                      >
+                        {r}
+                      </button>
+                    ))}
+                  </div>
+                  <button className="rate-retry" onClick={() => onRetry?.(turn.id, reason)}>
+                    ↻ Try again
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>

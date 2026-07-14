@@ -15,11 +15,19 @@ export function buildAnswerPrompt(
   history: PromptTurn[] = [],
   userContext = '',
   personaInstruction = '',
+  answerPrefs = '',
+  retryHint = '',
 ): string {
   const body = notes.map((n) => `[${n.index}] ${n.text}`).join('\n')
   const persona = personaInstruction ? `${personaInstruction}\n\n` : ''
   const who = userContext
     ? `WHO IS ASKING: ${userContext}\nAddress them by name when natural and tailor answers to what you know about them.\n\n`
+    : ''
+  const prefs = answerPrefs
+    ? `ANSWER PREFERENCES (learned from the user's past ratings — follow them): ${answerPrefs}\n\n`
+    : ''
+  const retry = retryHint
+    ? `The user was unsatisfied with your previous answer${retryHint ? ` (${retryHint})` : ''}. Give a better answer this time.`
     : ''
   const convo = history.length
     ? ['CONVERSATION SO FAR:', ...history.map((t) => `Q: ${t.question}\nA: ${t.answer}`), ''].join(
@@ -31,8 +39,9 @@ export function buildAnswerPrompt(
     'If nothing is relevant, say you have nothing saved about that yet.',
     'Use the conversation for context on follow-up questions.',
     'After your answer, on a new line list the note numbers you used as: SOURCES: n, n',
+    ...(retry ? [retry] : []),
     '',
-    who + convo + 'NOTES:',
+    who + prefs + convo + 'NOTES:',
     body,
     '',
     `QUESTION: ${question}`,

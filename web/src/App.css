@@ -1119,6 +1119,68 @@ textarea:focus {
   width: 100%;
 }
 
+/* ---------- Answer rating (👍/👎 + reasons) ---------- */
+.rate {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+.rate-btn {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  width: 34px;
+  height: 30px;
+  font-size: 0.95rem;
+  line-height: 1;
+  transition: background 0.18s ease, transform 0.12s ease;
+}
+.rate-btn:hover {
+  background: var(--surface-3);
+}
+.rate-btn:active {
+  transform: scale(0.9);
+}
+.rate-done {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+.rate-down {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.rate-reasons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.rate-reasons .chip {
+  font-size: 0.72rem;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--muted);
+  transition: all 0.15s ease;
+}
+.rate-reasons .chip.active {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+.rate-retry {
+  font-size: 0.75rem;
+  padding: 5px 12px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--arc) 45%, transparent);
+  color: var(--arc-ink);
+  background: color-mix(in srgb, var(--arc) 12%, transparent);
+}
+
 /* ============================================================
    JARVIS VOICE HUD — a cinematic arc-reactor takeover
    ============================================================ */

@@ -12,6 +12,7 @@ import {
   parseIntent,
   captureBody,
   parseCapture,
+  prefsBody,
 } from '../../src/lib/gemini-shapes'
 import { parseUrlMeta, urlMetaText, parseJsonLdRecipe } from '../../src/lib/url-meta'
 import { personaInstruction } from '../../src/lib/persona'
@@ -73,6 +74,9 @@ export default async (req: Request): Promise<Response> => {
     message?: string
     nowIso?: string
     persona?: string
+    answerPrefs?: string
+    retryHint?: string
+    feedback?: string[]
   }
   try {
     payload = await req.json()
@@ -94,6 +98,8 @@ export default async (req: Request): Promise<Response> => {
           payload.history ?? [],
           payload.userContext ?? '',
           personaInstruction(payload.persona ?? ''),
+          payload.answerPrefs ?? '',
+          payload.retryHint ?? '',
         ),
       )
       return reply(200, { text: parseGeminiText(g) })
@@ -113,6 +119,10 @@ export default async (req: Request): Promise<Response> => {
     }
     if (payload.action === 'geocode' && payload.lat != null && payload.lng != null) {
       return reply(200, { place: await reverseGeocode(payload.lat, payload.lng) })
+    }
+    if (payload.action === 'distillPrefs' && payload.feedback?.length) {
+      const g = await callGemini(key, prefsBody(payload.feedback.slice(0, 40)))
+      return reply(200, { prefs: parseGeminiText(g) })
     }
     if (payload.action === 'intent' && payload.message) {
       const g = await callGemini(key, intentBody(payload.message, payload.nowIso ?? ''))
