@@ -23,6 +23,23 @@ describe('buildAnswerPrompt', () => {
     const p = buildAnswerPrompt('hi', [])
     expect(p.startsWith("You are the user's personal memory")).toBe(true)
   })
+
+  it('includes learned answer preferences when given', () => {
+    const p = buildAnswerPrompt('hi', [], [], '', '', 'Keep answers short and specific.')
+    expect(p).toContain('ANSWER PREFERENCES')
+    expect(p).toContain('Keep answers short and specific.')
+  })
+
+  it('adds a retry instruction with the reason', () => {
+    const p = buildAnswerPrompt('hi', [], [], '', '', '', 'too long')
+    expect(p).toMatch(/unsatisfied with your previous answer \(too long\)/)
+  })
+
+  it('omits prefs and retry when empty', () => {
+    const p = buildAnswerPrompt('hi', [])
+    expect(p).not.toContain('ANSWER PREFERENCES')
+    expect(p).not.toContain('unsatisfied')
+  })
 })
 
 describe('parseAnswer', () => {

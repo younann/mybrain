@@ -26,12 +26,43 @@ export function answerBody(
   history: PromptTurn[] = [],
   userContext = '',
   personaInstruction = '',
+  answerPrefs = '',
+  retryHint = '',
 ) {
   return {
     contents: [
-      { parts: [{ text: buildAnswerPrompt(question, notes, history, userContext, personaInstruction) }] },
+      {
+        parts: [
+          {
+            text: buildAnswerPrompt(
+              question,
+              notes,
+              history,
+              userContext,
+              personaInstruction,
+              answerPrefs,
+              retryHint,
+            ),
+          },
+        ],
+      },
     ],
   }
+}
+
+/**
+ * Prompt that distills recent 👍/👎 feedback into a short note describing what
+ * the user likes in answers — injected into future answer prompts.
+ */
+export function prefsBody(lines: string[]) {
+  const prompt =
+    'Below are a user’s ratings of an assistant’s past answers (👍 liked, 👎 disliked, ' +
+    'with optional reasons). In 1–2 sentences, describe what this user prefers in answers ' +
+    '(length, tone, specificity, format). Be concrete and imperative (e.g. "Keep answers ' +
+    'short and specific; avoid hedging and long lists."). Reply with ONLY that guidance.\n\n' +
+    'RATINGS:\n' +
+    lines.join('\n')
+  return { contents: [{ parts: [{ text: prompt }] }] }
 }
 
 export function parseGeminiText(json: unknown): string {

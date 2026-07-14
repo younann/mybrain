@@ -31,8 +31,30 @@ export function answerQuestion(
   history: PromptTurn[] = [],
   userContext = '',
   persona = '',
+  answerPrefs = '',
+  retryHint = '',
 ): Promise<string> {
-  return callGemini(sb, { action: 'answer', question, notes, history, userContext, persona })
+  return callGemini(sb, {
+    action: 'answer',
+    question,
+    notes,
+    history,
+    userContext,
+    persona,
+    answerPrefs,
+    retryHint,
+  })
+}
+
+/** Distills rating lines into a short answer-preferences note ('' on failure). */
+export async function distillPrefs(sb: SupabaseClient, feedback: string[]): Promise<string> {
+  try {
+    return (
+      (await callGeminiJson<{ prefs: string }>(sb, { action: 'distillPrefs', feedback })).prefs ?? ''
+    )
+  } catch {
+    return ''
+  }
 }
 
 async function callGeminiJson<T>(sb: SupabaseClient, payload: Record<string, unknown>): Promise<T> {

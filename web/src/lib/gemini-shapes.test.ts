@@ -12,6 +12,7 @@ import {
   captureBody,
   parseCapture,
   formatRecipe,
+  prefsBody,
 } from './gemini-shapes'
 
 describe('gemini shapes', () => {
@@ -119,5 +120,11 @@ describe('gemini shapes', () => {
     expect(md).toContain('- basil')
     expect(md).toContain('1. blend')
     expect(md).toContain('2. serve')
+  })
+
+  it('prefsBody includes the rating lines', () => {
+    const t = prefsBody(['👍 Q: a | A: b', '👎 (too long) Q: c | A: d']).contents[0].parts[0].text
+    expect(t).toContain('👍 Q: a | A: b')
+    expect(t).toContain('👎 (too long) Q: c | A: d')
   })
 })

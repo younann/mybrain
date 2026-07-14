@@ -91,7 +91,13 @@ export default function App() {
           />
         )}
         {tab === 'ask' && (
-          <Ask entries={entries} profile={profile} onChange={refresh} initialShare={shared} />
+          <Ask
+            entries={entries}
+            profile={profile}
+            onChange={refresh}
+            initialShare={shared}
+            userId={session.user.id}
+          />
         )}
         {tab === 'map' && <MapView entries={entries} onChange={refresh} />}
         {tab === 'reminders' && <Reminders entries={entries} onChange={refresh} />}

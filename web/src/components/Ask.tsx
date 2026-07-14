@@ -1,7 +1,22 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
-import { answerQuestion, embedText, describeImage, classifyIntent, captureUrl } from '../lib/api'
+import {
+  answerQuestion,
+  embedText,
+  describeImage,
+  classifyIntent,
+  captureUrl,
+  distillPrefs,
+} from '../lib/api'
 import { matchEntries, addEntry, removeEntry, toVector } from '../lib/entries'
+import {
+  saveFeedback,
+  updateFeedbackReason,
+  listRecentFeedback,
+  feedbackLines,
+  updateAnswerPrefs,
+  type Rating,
+} from '../lib/feedback'
 import { parseAnswer } from '../lib/prompt'
 import { formatRecipe, type Capture } from '../lib/gemini-shapes'
 import { fileToBase64 } from '../lib/image'
@@ -26,11 +41,13 @@ export function Ask({
   profile,
   onChange,
   initialShare,
+  userId,
 }: {
   entries: Entry[]
   profile: Profile | null
   onChange: () => void
   initialShare?: string
+  userId: string
 }) {
   const [turns, setTurns] = useState<Turn[]>([])
   const [input, setInput] = useState('')
@@ -48,6 +65,11 @@ export function Ask({
   const recRef = useRef<Recognizer | null>(null)
   const gotResultRef = useRef(false)
   const watchdogRef = useRef<ReturnType<typeof setTimeout>>(undefined)
+
+  // Learned answer preferences (from 👍/👎), fed into every answer prompt.
+  const [answerPrefs, setAnswerPrefs] = useState(profile?.answer_prefs ?? '')
+  const feedbackIdRef = useRef<Record<number, string>>({})
+  const lastDistillRef = useRef(0)
 
   // A message shared into the app (PWA share target) captures immediately.
   const pendingShare = useRef(initialShare)
@@ -70,6 +92,11 @@ export function Ask({
       cancelSpeech()
     }
   }, [])
+
+  // Pick up learned preferences once the profile loads.
+  useEffect(() => {
+    if (profile?.answer_prefs) setAnswerPrefs(profile.answer_prefs)
+  }, [profile?.answer_prefs])
 
   async function submit(explicit?: string, fromVoice = false) {
     const q = (explicit ?? input).trim()
@@ -169,9 +196,10 @@ export function Ask({
         history,
         profileContext(profile),
         getPersona(),
+        answerPrefs,
       )
       const { text, sourceIndices } = parseAnswer(raw)
-      finish(id, text, sourceIndices.map((i) => pool[i]).filter(Boolean))
+      finish(id, text, sourceIndices.map((i) => pool[i]).filter(Boolean), { ratable: true })
     } catch (e) {
       // In a voice session, speak a clean line (and keep the loop alive) instead
       // of reading a raw error; typed turns still see the real message.
@@ -208,8 +236,14 @@ export function Ask({
     return captureReply(cap)
   }
 
-  function finish(id: number, answer: string, sources: Entry[]) {
-    setTurns((t) => t.map((x) => (x.id === id ? { ...x, answer, sources, loading: false } : x)))
+  function finish(id: number, answer: string, sources: Entry[], opts?: { ratable?: boolean }) {
+    setTurns((t) =>
+      t.map((x) =>
+        x.id === id
+          ? { ...x, answer, sources, loading: false, ratable: opts?.ratable ?? false, rating: undefined }
+          : x,
+      ),
+    )
     if (speakNextRef.current) {
       speakNextRef.current = false
       // The session may have ended (tapped END, left the tab) while the answer
@@ -222,6 +256,79 @@ export function Ask({
         // auto-reopening the mic (more reliable, especially on iOS).
         if (voiceModeRef.current) setVoicePhase('idle')
       })
+    }
+  }
+
+  // ---- Answer feedback / learning ----
+
+  async function rate(id: number, rating: Rating) {
+    const turn = turns.find((t) => t.id === id)
+    if (!turn) return
+    setTurns((t) => t.map((x) => (x.id === id ? { ...x, rating } : x)))
+    try {
+      const fid = await saveFeedback(supabase, {
+        question: turn.question,
+        answer: turn.answer,
+        rating,
+      })
+      if (fid) feedbackIdRef.current[id] = fid
+    } catch {
+      /* best-effort */
+    }
+    void maybeDistill()
+  }
+
+  async function rateReason(id: number, reason: string) {
+    const fid = feedbackIdRef.current[id]
+    if (fid) await updateFeedbackReason(supabase, fid, reason).catch(() => {})
+    void maybeDistill()
+  }
+
+  // Re-summarize recent ratings into the preferences note (throttled).
+  async function maybeDistill() {
+    if (Date.now() - lastDistillRef.current < 30_000) return
+    lastDistillRef.current = Date.now()
+    try {
+      const rows = await listRecentFeedback(supabase, 40)
+      if (rows.length < 3) return
+      const prefs = await distillPrefs(supabase, feedbackLines(rows))
+      if (prefs) {
+        setAnswerPrefs(prefs)
+        await updateAnswerPrefs(supabase, userId, prefs).catch(() => {})
+      }
+    } catch {
+      /* best-effort */
+    }
+  }
+
+  async function regenerate(id: number, reason: string | null) {
+    const turn = turns.find((t) => t.id === id)
+    if (!turn) return
+    setTurns((t) =>
+      t.map((x) => (x.id === id ? { ...x, loading: true, ratable: false, rating: undefined } : x)),
+    )
+    try {
+      let pool = entries
+      const qEmb = await embedText(supabase, turn.question).catch(() => [])
+      if (qEmb.length) {
+        const matched = await matchEntries(supabase, qEmb, 8).catch(() => [])
+        if (matched.length) pool = matched
+      }
+      const notes = pool.map((e, i) => ({ index: i, text: searchableText(e) }))
+      const raw = await answerQuestion(
+        supabase,
+        turn.question,
+        notes,
+        [],
+        profileContext(profile),
+        getPersona(),
+        answerPrefs,
+        reason || 'the previous answer missed the mark',
+      )
+      const { text, sourceIndices } = parseAnswer(raw)
+      finish(id, text, sourceIndices.map((i) => pool[i]).filter(Boolean), { ratable: true })
+    } catch (e) {
+      finish(id, `⚠️ ${(e as Error).message}`, [])
     }
   }
 
@@ -317,7 +424,14 @@ export function Ask({
           </p>
         )}
         {turns.map((t) => (
-          <MessageBubble key={t.id} turn={t} onSelect={setSelected} />
+          <MessageBubble
+            key={t.id}
+            turn={t}
+            onSelect={setSelected}
+            onFeedback={rate}
+            onReason={rateReason}
+            onRetry={regenerate}
+          />
         ))}
       </div>
       <div className="composer">

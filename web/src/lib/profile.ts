@@ -5,6 +5,7 @@ export interface Profile {
   name: string
   about: string
   avatar_path: string | null
+  answer_prefs?: string
 }
 
 export async function getProfile(sb: SupabaseClient): Promise<Profile | null> {
